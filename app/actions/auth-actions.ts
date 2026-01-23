@@ -63,3 +63,36 @@ export async function removeAllowedEmail(emailId: string) {
 
   revalidatePath("/admin")
 }
+
+export async function bulkAddAllowedEmails(emails: string[]) {
+  const supabase = await createClient()
+  
+  // Get authenticated user and check if admin
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single()
+
+  if (!userProfile?.is_admin) throw new Error("Admin access required")
+
+  // Use service client to bypass RLS for inserting allowed emails
+  const serviceClient = await createServiceClient()
+  
+  // Prepare email records
+  const emailRecords = emails.map(email => ({
+    email: email.toLowerCase().trim(),
+  }))
+
+  // Insert all emails, ignoring duplicates
+  const { error } = await serviceClient
+    .from("allowed_emails")
+    .upsert(emailRecords, { onConflict: "email", ignoreDuplicates: true })
+
+  if (error) throw error
+
+  revalidatePath("/admin")
+}
