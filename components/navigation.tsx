@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Home, Users, Heart, Settings, LogOut } from "lucide-react"
+import { Calendar, Home, Users, Heart, Settings, LogOut, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { signOut } from "@/app/actions/auth-actions"
@@ -20,6 +20,7 @@ export function Navigation({ currentPage, isAdmin }: NavigationProps) {
     { href: "/directory", label: "Directory", icon: Home },
     { href: "/clubs", label: "Clubs", icon: Users },
     { href: "/community", label: "Community", icon: Heart },
+    { href: "/profile", label: "Profile", icon: User },
   ]
 
   if (isAdmin) {

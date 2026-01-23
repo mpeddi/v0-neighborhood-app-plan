@@ -198,8 +198,8 @@ export function CalendarView({ events, userId, isAdmin }: CalendarViewProps) {
                           </div>
 
                           <p className="text-xs text-slate-400">
-                            Posted by {event.created_by_user?.residences.last_name || "Anonymous"} (
-                            {event.created_by_user?.residences.address || "Unknown address"})
+                            Posted by {event.created_by_user?.residences?.last_name || "Anonymous"} (
+                            {event.created_by_user?.residences?.address || "Unknown address"})
                           </p>
                         </div>
                       </CardContent>

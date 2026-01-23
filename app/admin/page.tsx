@@ -9,11 +9,16 @@ export default async function AdminPage() {
   // Get authenticated user
   const { data: { user } } = await supabase.auth.getUser()
   
+  // Redirect if not authenticated
+  if (!user) {
+    redirect("/auth/login")
+  }
+  
   // Get user profile to check if admin
   const { data: userProfile } = await supabase
     .from("users")
     .select("*, residences(*)")
-    .eq("id", user?.id)
+    .eq("id", user.id)
     .single()
 
   // Only allow admins to access this page

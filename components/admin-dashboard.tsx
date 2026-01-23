@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,9 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Home, Calendar, Heart, Gift, HelpCircle, CheckCircle2, Mail, Trash2, Upload, Plus } from "lucide-react"
+import { Users, Home, Calendar, Heart, Gift, HelpCircle, CheckCircle2, Mail, Trash2, Upload, Plus, Pencil, Save, X } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import { addAllowedEmail, removeAllowedEmail, bulkAddAllowedEmails } from "@/app/actions/auth-actions"
+import { addAllowedEmail, removeAllowedEmail, bulkAddAllowedEmails, updateResidence } from "@/app/actions/auth-actions"
+import ResidenceManager from "./residence-manager" // Declare the ResidenceManager variable before using it
 
 interface AdminDashboardProps {
   stats: {
@@ -132,48 +132,8 @@ export function AdminDashboard({ stats, recentEvents, residences, allowedEmails 
         </CardContent>
       </Card>
 
-      {/* Residence Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Residence Status</CardTitle>
-          <CardDescription>Overview of all homes by street</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {["Symor Dr", "Brothers Pl", "Fanok Rd", "Hadley Way", "Herms Pl"].map((street) => {
-              const streetResidences = residences.filter((r) => r.street_name === street)
-              const claimedCount = streetResidences.filter((r) => r.is_claimed).length
-
-              return (
-                <div key={street} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-sm">{street}</h4>
-                    <span className="text-sm text-slate-500">
-                      {claimedCount}/{streetResidences.length} claimed
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                    {streetResidences.map((residence) => (
-                      <div
-                        key={residence.id}
-                        className={`p-2 rounded border text-xs ${
-                          residence.is_claimed ? "bg-green-50 border-green-200" : "bg-slate-50 border-slate-200"
-                        }`}
-                      >
-                        <div className="font-medium truncate">{residence.address}</div>
-                        <div className="text-slate-600 flex items-center gap-1 mt-1">
-                          {residence.is_claimed && <CheckCircle2 className="w-3 h-3 text-green-600" />}
-                          <span className="truncate">{residence.last_name}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Residence Management */}
+      <ResidenceManager residences={residences} />
 
       {/* Email Whitelist Management */}
       <WhitelistManager allowedEmails={allowedEmails} residences={residences} />
@@ -207,7 +167,8 @@ function WhitelistManager({ allowedEmails, residences }: { allowedEmails: any[],
     setError("")
     setSuccess("")
     try {
-      await addAllowedEmail(newEmail, selectedResidence || undefined)
+      const residenceId = selectedResidence && selectedResidence !== "none" ? selectedResidence : undefined
+      await addAllowedEmail(newEmail, residenceId)
       setNewEmail("")
       setSelectedResidence("")
       setSuccess("Email added successfully!")
@@ -240,15 +201,17 @@ function WhitelistManager({ allowedEmails, residences }: { allowedEmails: any[],
       
       if (emails.length === 0) {
         setError("No valid emails found")
+        setIsUploading(false)
         return
       }
 
       await bulkAddAllowedEmails(emails)
       setBulkEmails("")
       setSuccess(`Successfully added ${emails.length} email(s)!`)
+      setIsUploading(false)
     } catch (err: any) {
+      console.log("[v0] Bulk upload error:", err)
       setError(err.message || "Failed to upload emails")
-    } finally {
       setIsUploading(false)
     }
   }

@@ -47,6 +47,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/directory") ||
     request.nextUrl.pathname.startsWith("/clubs") ||
     request.nextUrl.pathname.startsWith("/community") ||
+    request.nextUrl.pathname.startsWith("/profile") ||
     request.nextUrl.pathname.startsWith("/admin")
 
   const isAuthRoute = request.nextUrl.pathname.startsWith("/auth")
