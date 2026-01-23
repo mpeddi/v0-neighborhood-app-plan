@@ -23,7 +23,6 @@ export function ClubDetail({ club, members, posts, isMember, userId, userResiden
   const [loading, setLoading] = useState(false)
 
   const handleJoin = async () => {
-    if (!userId) return
     setLoading(true)
     await joinClub(club.id)
     router.refresh()
@@ -31,7 +30,6 @@ export function ClubDetail({ club, members, posts, isMember, userId, userResiden
   }
 
   const handleLeave = async () => {
-    if (!userId) return
     if (confirm("Are you sure you want to leave this club?")) {
       setLoading(true)
       await leaveClub(club.id)
@@ -50,23 +48,21 @@ export function ClubDetail({ club, members, posts, isMember, userId, userResiden
               <CardTitle className="text-3xl mb-2">{club.name}</CardTitle>
               <CardDescription className="text-base">{club.description}</CardDescription>
             </div>
-            {userId && (
-              <div className="flex items-center gap-2">
-                {isMember ? (
-                  <>
-                    <Button variant="outline" onClick={handleLeave} disabled={loading}>
-                      <UserMinus className="w-4 h-4 mr-2" />
-                      Leave
-                    </Button>
-                  </>
-                ) : (
-                  <Button onClick={handleJoin} disabled={loading}>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Join Club
+            <div className="flex items-center gap-2">
+              {isMember ? (
+                <>
+                  <Button variant="outline" onClick={handleLeave} disabled={loading}>
+                    <UserMinus className="w-4 h-4 mr-2" />
+                    Leave
                   </Button>
-                )}
-              </div>
-            )}
+                </>
+              ) : (
+                <Button onClick={handleJoin} disabled={loading}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Join Club
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>

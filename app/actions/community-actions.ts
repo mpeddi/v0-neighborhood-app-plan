@@ -6,9 +6,13 @@ import { revalidatePath } from "next/cache"
 export async function createCharitableItem(title: string, description: string, itemType: string) {
   const supabase = await createClient()
 
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
   const { error } = await supabase
     .from("charitable_items")
-    .insert({ title, description, item_type: itemType, created_by: null })
+    .insert({ title, description, item_type: itemType, created_by: user.id })
 
   if (error) throw error
 
@@ -18,7 +22,15 @@ export async function createCharitableItem(title: string, description: string, i
 export async function createGiveaway(title: string, description: string) {
   const supabase = await createClient()
 
-  const { error } = await supabase.from("giveaways").insert({ title, description, created_by: null })
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  const { error } = await supabase.from("giveaways").insert({ 
+    title, 
+    description, 
+    created_by: user.id 
+  })
 
   if (error) throw error
 
@@ -28,9 +40,13 @@ export async function createGiveaway(title: string, description: string) {
 export async function claimGiveaway(giveawayId: string) {
   const supabase = await createClient()
 
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
   const { error } = await supabase
     .from("giveaways")
-    .update({ status: "claimed", claimed_by: null })
+    .update({ status: "claimed", claimed_by: user.id })
     .eq("id", giveawayId)
 
   if (error) throw error
@@ -41,9 +57,13 @@ export async function claimGiveaway(giveawayId: string) {
 export async function createHelpRequest(title: string, description: string, requestType: string) {
   const supabase = await createClient()
 
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
   const { error } = await supabase
     .from("help_requests")
-    .insert({ title, description, request_type: requestType, created_by: null })
+    .insert({ title, description, request_type: requestType, created_by: user.id })
 
   if (error) throw error
 
@@ -53,9 +73,13 @@ export async function createHelpRequest(title: string, description: string, requ
 export async function addCommunityComment(itemId: string, itemType: string, content: string) {
   const supabase = await createClient()
 
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
   const { error } = await supabase
     .from("community_comments")
-    .insert({ item_id: itemId, item_type: itemType, user_id: null, content })
+    .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content })
 
   if (error) throw error
 

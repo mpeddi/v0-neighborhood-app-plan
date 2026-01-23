@@ -1,48 +1,55 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { verifyResidence, sendMockOTP, verifyOTP, createUserAccount } from "@/lib/auth-helpers"
+import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [step, setStep] = useState<"address" | "otp">("address")
-  const [address, setAddress] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [otp, setOtp] = useState("")
+  const [email, setEmail] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [residenceData, setResidenceData] = useState<any>(null)
-  const [mockOTP, setMockOTP] = useState("") // For display during development
+  const [emailSent, setEmailSent] = useState(false)
 
-  const handleVerifyAddress = async (e: React.FormEvent) => {
+  const handleSendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
     try {
-      const result = await verifyResidence(address, lastName)
+      const supabase = createClient()
 
-      if (!result.success) {
-        setError(result.error || "Verification failed")
+      // Check if email is in whitelist
+      const { data: allowedEmail, error: whitelistError } = await supabase
+        .from("allowed_emails")
+        .select("email")
+        .eq("email", email.toLowerCase().trim())
+        .single()
+
+      if (whitelistError || !allowedEmail) {
+        setError("This email is not authorized. Please contact the neighborhood administrator.")
         setLoading(false)
         return
       }
 
-      setResidenceData(result.residence)
+      // Send magic link
+      const { error: authError } = await supabase.auth.signInWithOtp({
+        email: email.toLowerCase().trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
 
-      // Send OTP
-      const otpResult = await sendMockOTP(result.residence.phone_number)
-      if (otpResult.success) {
-        setMockOTP(otpResult.otp || "") // For development display
-        setStep("otp")
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+        return
       }
+
+      setEmailSent(true)
     } catch (err) {
       setError("An error occurred. Please try again.")
     } finally {
@@ -50,50 +57,44 @@ export default function LoginPage() {
     }
   }
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+  if (emailSent) {
+    return (
+      <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-gradient-to-br from-blue-50 to-green-50">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <h1 className="text-4xl font-bold text-green-800 mb-2">The Symor Driver</h1>
+            <p className="text-slate-600">Morris Township Neighborhood Hub</p>
+          </div>
 
-    try {
-      console.log("[v0] Starting OTP verification")
-      const result = await verifyOTP(residenceData.phone_number, otp)
-
-      if (!result.success) {
-        setError(result.error || "Invalid code")
-        setLoading(false)
-        return
-      }
-
-      console.log("[v0] OTP verified, creating user account")
-      const isAdmin = address === "14 Symor Dr"
-
-      // Always try to create/update user account (it handles existing users too)
-      const userResult = await createUserAccount(residenceData.id, residenceData.phone_number, isAdmin)
-
-      if (!userResult.success) {
-        console.log("[v0] User creation failed:", userResult.error)
-        setError(userResult.error || "Failed to sign in")
-        setLoading(false)
-        return
-      }
-
-      if (!userResult.sessionCreated) {
-        console.error("[v0] Session not created")
-        setError("Failed to create session. Please try again.")
-        setLoading(false)
-        return
-      }
-
-      console.log("[v0] Success! Redirecting to calendar")
-      // Redirect to calendar
-      router.push("/calendar")
-      router.refresh()
-    } catch (err) {
-      console.error("[v0] Login error:", err)
-      setError("An error occurred. Please try again.")
-      setLoading(false)
-    }
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Check Your Email</CardTitle>
+              <CardDescription>
+                We sent a magic link to <strong>{email}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <p className="text-sm text-slate-600">
+                  Click the link in your email to sign in. The link will expire in 1 hour.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full bg-transparent"
+                  onClick={() => {
+                    setEmailSent(false)
+                    setEmail("")
+                  }}
+                >
+                  Use a different email
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -106,84 +107,37 @@ export default function LoginPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">{step === "address" ? "Welcome Neighbor" : "Verify Your Phone"}</CardTitle>
+            <CardTitle className="text-2xl">Welcome Neighbor</CardTitle>
             <CardDescription>
-              {step === "address"
-                ? "Enter your address and last name to get started"
-                : `Enter the 6-digit code sent to ${residenceData?.phone_number}`}
+              Enter your email address to receive a sign-in link
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {step === "address" ? (
-              <form onSubmit={handleVerifyAddress}>
-                <div className="flex flex-col gap-6">
-                  <div className="grid gap-2">
-                    <Label htmlFor="address">Street Address</Label>
-                    <Input
-                      id="address"
-                      type="text"
-                      placeholder="14 Symor Dr"
-                      required
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      type="text"
-                      placeholder="Thompson"
-                      required
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                    />
-                  </div>
-                  {error && <p className="text-sm text-red-600">{error}</p>}
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Verifying..." : "Continue"}
-                  </Button>
+            <form onSubmit={handleSendMagicLink}>
+              <div className="flex flex-col gap-6">
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                  />
                 </div>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOTP}>
-                <div className="flex flex-col gap-6">
-                  {mockOTP && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                      <p className="text-sm text-blue-900 font-medium">Development Mode</p>
-                      <p className="text-xs text-blue-700 mt-1">
-                        Your code: <strong>{mockOTP}</strong>
-                      </p>
-                    </div>
-                  )}
-                  <div className="grid gap-2">
-                    <Label htmlFor="otp">Verification Code</Label>
-                    <Input
-                      id="otp"
-                      type="text"
-                      placeholder="000000"
-                      maxLength={6}
-                      required
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                      className="text-center text-2xl tracking-widest"
-                    />
-                  </div>
-                  {error && <p className="text-sm text-red-600">{error}</p>}
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Verifying..." : "Verify & Sign In"}
-                  </Button>
-                  <Button type="button" variant="ghost" className="w-full" onClick={() => setStep("address")}>
-                    Back
-                  </Button>
-                </div>
-              </form>
-            )}
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Sending..." : "Send Magic Link"}
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
 
         <p className="text-center text-sm text-slate-500 mt-6">
-          Only residents of Symor Dr, Brothers Pl, Fanok Rd, Hadley Way, and Herms Pl can access this app.
+          Only pre-approved neighborhood residents can access this app.
         </p>
       </div>
     </div>

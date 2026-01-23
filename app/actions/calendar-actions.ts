@@ -13,6 +13,10 @@ export async function createEvent(formData: {
 }) {
   const supabase = await createClient()
 
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
   const { error } = await supabase.from("calendar_events").insert({
     title: formData.title,
     description: formData.description || null,
@@ -20,6 +24,7 @@ export async function createEvent(formData: {
     event_time: formData.event_time || null,
     location: formData.location || null,
     category: formData.category,
+    created_by: user.id,
   })
 
   if (error) throw error
@@ -39,6 +44,10 @@ export async function updateEvent(
   },
 ) {
   const supabase = await createClient()
+
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
 
   const { error } = await supabase
     .from("calendar_events")
@@ -60,6 +69,10 @@ export async function updateEvent(
 
 export async function deleteEvent(eventId: string) {
   const supabase = await createClient()
+
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
 
   const { error } = await supabase.from("calendar_events").delete().eq("id", eventId)
 
