@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation"
-import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { Navigation } from "@/components/navigation"
 import { ClubDetail } from "@/components/club-detail"
 
 export const dynamic = 'force-dynamic'
 
-async function ClubDetailContent({ id }: { id: string }) {
+export default async function ClubDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
 
   // Get authenticated user
@@ -47,27 +47,17 @@ async function ClubDetailContent({ id }: { id: string }) {
     .order("created_at", { ascending: false })
 
   return (
-    <ClubDetail
-      club={club}
-      members={members || []}
-      posts={posts || []}
-      isMember={isMember}
-      userId={user?.id ?? null}
-      userResidence={userProfile?.residences ?? null}
-    />
-  )
-}
-
-export default async function ClubDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params
-  
-  return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       <Navigation currentPage="clubs" isAdmin={false} />
       <main className="container mx-auto px-4 py-8 max-w-5xl">
-        <Suspense fallback={<div className="text-center py-8">Loading club...</div>}>
-          <ClubDetailContent id={resolvedParams.id} />
-        </Suspense>
+        <ClubDetail
+          club={club}
+          members={members || []}
+          posts={posts || []}
+          isMember={isMember}
+          userId={user?.id ?? null}
+          userResidence={userProfile?.residences ?? null}
+        />
       </main>
     </div>
   )

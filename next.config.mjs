@@ -7,6 +7,9 @@ const nextConfig = {
     unoptimized: true,
   },
   cacheComponents: true,
+  experimental: {
+    dynamicIO: true,
+  },
 }
 
 export default nextConfig
