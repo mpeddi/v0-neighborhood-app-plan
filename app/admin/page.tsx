@@ -81,6 +81,22 @@ async function AdminContent() {
     .select("*, users(*)")
     .order("created_at", { ascending: false })
 
+  // Get all community items for management
+  const { data: allGiveaways } = await supabase
+    .from("giveaways")
+    .select("*, users(*)")
+    .order("created_at", { ascending: false })
+
+  const { data: allHelpRequests } = await supabase
+    .from("help_requests")
+    .select("*, users(*)")
+    .order("created_at", { ascending: false })
+
+  const { data: allCharitableItems } = await supabase
+    .from("charitable_items")
+    .select("*, users(*)")
+    .order("created_at", { ascending: false })
+
   const stats = {
     totalResidences: totalResidences || 0,
     claimedResidences: claimedResidences || 0,
@@ -98,6 +114,9 @@ async function AdminContent() {
       residences={allResidences || []}
       allowedEmails={allowedEmails || []}
       clubs={allClubs || []}
+      giveaways={allGiveaways || []}
+      helpRequests={allHelpRequests || []}
+      charitableItems={allCharitableItems || []}
     />
   )
 }
