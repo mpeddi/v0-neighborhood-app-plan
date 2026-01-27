@@ -6,7 +6,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  cacheComponents: true,
   experimental: {
     dynamicIO: true,
   },
