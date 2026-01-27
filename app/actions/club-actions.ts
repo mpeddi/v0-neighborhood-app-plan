@@ -100,3 +100,44 @@ export async function addClubPostComment(postId: string, content: string) {
 
   revalidatePath("/clubs")
 }
+
+export async function deleteClub(clubId: string) {
+  const supabase = await createClient()
+  
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  // Check if user is the club creator or an admin
+  const { data: club } = await supabase
+    .from("clubs")
+    .select("created_by")
+    .eq("id", clubId)
+    .single()
+
+  if (!club) throw new Error("Club not found")
+
+  // Check if user is admin or club creator
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single()
+
+  const isAdmin = userProfile?.is_admin
+  const isCreator = club.created_by === user.id
+
+  if (!isAdmin && !isCreator) {
+    throw new Error("Only club creator or admin can delete this club")
+  }
+
+  // Delete club (this will cascade to delete club_members, club_posts, etc.)
+  const { error } = await supabase
+    .from("clubs")
+    .delete()
+    .eq("id", clubId)
+
+  if (error) throw error
+
+  revalidatePath("/clubs")
+}

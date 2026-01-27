@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Home, Calendar, Heart, Gift, HelpCircle, CheckCircle2, Mail, Trash2, Upload, Plus, Pencil, Save, X } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { addAllowedEmail, removeAllowedEmail, bulkAddAllowedEmails, updateResidence } from "@/app/actions/auth-actions"
+import { deleteClub } from "@/app/actions/club-actions"
 import ResidenceManager from "./residence-manager" // Declare the ResidenceManager variable before using it
 
 interface AdminDashboardProps {
@@ -26,9 +27,10 @@ interface AdminDashboardProps {
   recentEvents: any[]
   residences: any[]
   allowedEmails: any[]
+  clubs: any[]
 }
 
-export function AdminDashboard({ stats, recentEvents, residences, allowedEmails }: AdminDashboardProps) {
+export function AdminDashboard({ stats, recentEvents, residences, allowedEmails, clubs }: AdminDashboardProps) {
   const claimRate = stats.totalResidences > 0 ? (stats.claimedResidences / stats.totalResidences) * 100 : 0
 
   return (
@@ -137,6 +139,9 @@ export function AdminDashboard({ stats, recentEvents, residences, allowedEmails 
 
       {/* Email Whitelist Management */}
       <WhitelistManager allowedEmails={allowedEmails} residences={residences} />
+
+      {/* Club Management */}
+      <ClubManager clubs={clubs} />
 
       {/* Quick Stats Summary */}
       <Card className="bg-gradient-to-r from-green-50 to-blue-50">
@@ -362,6 +367,87 @@ function WhitelistManager({ allowedEmails, residences }: { allowedEmails: any[],
             </p>
           )}
         </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ClubManager({ clubs }: { clubs: any[] }) {
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
+  const handleDeleteClub = async (clubId: string) => {
+    if (!confirm("Are you sure you want to delete this club? This action cannot be undone.")) {
+      return
+    }
+
+    setDeletingId(clubId)
+    setError("")
+    setSuccess("")
+
+    try {
+      await deleteClub(clubId)
+      setSuccess("Club deleted successfully!")
+    } catch (err: any) {
+      console.error("[v0] Delete club error:", err)
+      setError(err.message || "Failed to delete club")
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Heart className="w-5 h-5" />
+          Club Management
+        </CardTitle>
+        <CardDescription>
+          Manage all clubs and remove inappropriate or inactive clubs.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded">
+            {success}
+          </div>
+        )}
+
+        {clubs.length > 0 ? (
+          <div className="border rounded-lg divide-y max-h-96 overflow-y-auto">
+            {clubs.map((club) => (
+              <div key={club.id} className="flex items-start justify-between p-4 hover:bg-slate-50">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-base">{club.name}</h4>
+                  <p className="text-sm text-slate-600 mt-1">{club.description}</p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Created by: {club.users?.residences?.last_name || "Unknown"} • Created {formatDistanceToNow(new Date(club.created_at), { addSuffix: true })}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteClub(club.id)}
+                  disabled={deletingId === club.id}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-slate-500 py-8 border rounded-lg">
+            No clubs to manage. Clubs will appear here once created.
+          </p>
+        )}
       </CardContent>
     </Card>
   )
