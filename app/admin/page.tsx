@@ -2,8 +2,9 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Navigation } from "@/components/navigation"
 import { AdminDashboard } from "@/components/admin-dashboard"
+import { Suspense } from "react"
 
-export default async function AdminPage() {
+async function AdminContent() {
   const supabase = await createClient()
 
   // Get authenticated user
@@ -85,6 +86,17 @@ export default async function AdminPage() {
   }
 
   return (
+    <AdminDashboard 
+      stats={stats} 
+      recentEvents={recentEvents || []} 
+      residences={allResidences || []}
+      allowedEmails={allowedEmails || []}
+    />
+  )
+}
+
+export default async function AdminPage() {
+  return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       <Navigation currentPage="admin" isAdmin={true} />
       <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -92,12 +104,9 @@ export default async function AdminPage() {
           <h1 className="text-4xl font-bold text-green-800 mb-2">Admin Dashboard</h1>
           <p className="text-slate-600">Manage The Symor Driver neighborhood app</p>
         </div>
-        <AdminDashboard 
-          stats={stats} 
-          recentEvents={recentEvents || []} 
-          residences={allResidences || []}
-          allowedEmails={allowedEmails || []}
-        />
+        <Suspense fallback={<div className="text-center py-8">Loading admin dashboard...</div>}>
+          <AdminContent />
+        </Suspense>
       </main>
     </div>
   )

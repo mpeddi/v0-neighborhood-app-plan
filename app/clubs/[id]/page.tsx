@@ -17,8 +17,6 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
     .eq("id", user?.id)
     .single()
 
-  const isAdmin = userProfile?.is_admin ?? false
-
   // Get club details
   const { data: club } = await supabase
     .from("clubs")
@@ -48,7 +46,7 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <Navigation currentPage="clubs" isAdmin={isAdmin} />
+      <Navigation currentPage="clubs" isAdmin={false} />
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <ClubDetail
           club={club}
