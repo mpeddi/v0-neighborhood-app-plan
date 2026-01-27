@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server"
 import { Navigation } from "@/components/navigation"
 import { ClubDetail } from "@/components/club-detail"
 
+export const dynamic = 'force-dynamic'
+
 async function ClubDetailContent({ id }: { id: string }) {
   const supabase = await createClient()
 
