@@ -57,14 +57,14 @@ async function ClubDetailContent({ id }: { id: string }) {
 }
 
 export default async function ClubDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+  const resolvedParams = await params
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       <Navigation currentPage="clubs" isAdmin={false} />
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <Suspense fallback={<div className="text-center py-8">Loading club...</div>}>
-          <ClubDetailContent id={id} />
+          <ClubDetailContent id={resolvedParams.id} />
         </Suspense>
       </main>
     </div>
