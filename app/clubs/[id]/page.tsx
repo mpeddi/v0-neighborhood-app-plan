@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { Navigation } from "@/components/navigation"
 import { ClubDetail } from "@/components/club-detail"
 
-export default async function ClubDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+async function ClubDetailContent({ id }: { id: string }) {
   const supabase = await createClient()
 
   // Get authenticated user
@@ -16,8 +16,6 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
     .select("*, residences(*)")
     .eq("id", user?.id)
     .single()
-
-  const isAdmin = userProfile?.is_admin ?? false
 
   // Get club details
   const { data: club } = await supabase
@@ -47,17 +45,27 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
     .order("created_at", { ascending: false })
 
   return (
+    <ClubDetail
+      club={club}
+      members={members || []}
+      posts={posts || []}
+      isMember={isMember}
+      userId={user?.id ?? null}
+      userResidence={userProfile?.residences ?? null}
+    />
+  )
+}
+
+export default async function ClubDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  
+  return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <Navigation currentPage="clubs" isAdmin={isAdmin} />
+      <Navigation currentPage="clubs" isAdmin={false} />
       <main className="container mx-auto px-4 py-8 max-w-5xl">
-        <ClubDetail
-          club={club}
-          members={members || []}
-          posts={posts || []}
-          isMember={isMember}
-          userId={user?.id ?? null}
-          userResidence={userProfile?.residences ?? null}
-        />
+        <Suspense fallback={<div className="text-center py-8">Loading club...</div>}>
+          <ClubDetailContent id={id} />
+        </Suspense>
       </main>
     </div>
   )
