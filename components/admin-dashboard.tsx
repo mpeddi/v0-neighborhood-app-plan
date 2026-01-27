@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Home, Calendar, Heart, Gift, HelpCircle, CheckCircle2, Mail, Trash2, Upload, Plus, Pencil, Save, X } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { addAllowedEmail, removeAllowedEmail, bulkAddAllowedEmails, updateResidence } from "@/app/actions/auth-actions"
+import { deleteClub } from "@/app/actions/club-actions"
+import { deleteGiveaway, deleteHelpRequest, deleteCharitableItem } from "@/app/actions/community-actions"
 import ResidenceManager from "./residence-manager" // Declare the ResidenceManager variable before using it
 
 interface AdminDashboardProps {
@@ -26,9 +28,13 @@ interface AdminDashboardProps {
   recentEvents: any[]
   residences: any[]
   allowedEmails: any[]
+  clubs: any[]
+  giveaways: any[]
+  helpRequests: any[]
+  charitableItems: any[]
 }
 
-export function AdminDashboard({ stats, recentEvents, residences, allowedEmails }: AdminDashboardProps) {
+export function AdminDashboard({ stats, recentEvents, residences, allowedEmails, clubs, giveaways, helpRequests, charitableItems }: AdminDashboardProps) {
   const claimRate = stats.totalResidences > 0 ? (stats.claimedResidences / stats.totalResidences) * 100 : 0
 
   return (
@@ -137,6 +143,14 @@ export function AdminDashboard({ stats, recentEvents, residences, allowedEmails 
 
       {/* Email Whitelist Management */}
       <WhitelistManager allowedEmails={allowedEmails} residences={residences} />
+
+      {/* Club Management */}
+      <ClubManager clubs={clubs} />
+
+      {/* Community Items Management */}
+      <GiveawayManager giveaways={giveaways} />
+      <HelpRequestManager helpRequests={helpRequests} />
+      <CharitableItemManager charitableItems={charitableItems} />
 
       {/* Quick Stats Summary */}
       <Card className="bg-gradient-to-r from-green-50 to-blue-50">
@@ -362,6 +376,330 @@ function WhitelistManager({ allowedEmails, residences }: { allowedEmails: any[],
             </p>
           )}
         </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ClubManager({ clubs }: { clubs: any[] }) {
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
+  const handleDeleteClub = async (clubId: string) => {
+    if (!confirm("Are you sure you want to delete this club? This action cannot be undone.")) {
+      return
+    }
+
+    setDeletingId(clubId)
+    setError("")
+    setSuccess("")
+
+    try {
+      await deleteClub(clubId)
+      setSuccess("Club deleted successfully!")
+    } catch (err: any) {
+      console.error("[v0] Delete club error:", err)
+      setError(err.message || "Failed to delete club")
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Heart className="w-5 h-5" />
+          Club Management
+        </CardTitle>
+        <CardDescription>
+          Manage all clubs and remove inappropriate or inactive clubs.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded">
+            {success}
+          </div>
+        )}
+
+        {clubs.length > 0 ? (
+          <div className="border rounded-lg divide-y max-h-96 overflow-y-auto">
+            {clubs.map((club) => (
+              <div key={club.id} className="flex items-start justify-between p-4 hover:bg-slate-50">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-base">{club.name}</h4>
+                  <p className="text-sm text-slate-600 mt-1">{club.description}</p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Created by: {club.users?.residences?.last_name || "Unknown"} • Created {formatDistanceToNow(new Date(club.created_at), { addSuffix: true })}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteClub(club.id)}
+                  disabled={deletingId === club.id}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-slate-500 py-8 border rounded-lg">
+            No clubs to manage. Clubs will appear here once created.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function GiveawayManager({ giveaways }: { giveaways: any[] }) {
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
+  const handleDeleteGiveaway = async (giveawayId: string) => {
+    if (!confirm("Are you sure you want to delete this giveaway?")) {
+      return
+    }
+
+    setDeletingId(giveawayId)
+    setError("")
+    setSuccess("")
+
+    try {
+      await deleteGiveaway(giveawayId)
+      setSuccess("Giveaway deleted successfully!")
+    } catch (err: any) {
+      console.error("[v0] Delete giveaway error:", err)
+      setError(err.message || "Failed to delete giveaway")
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Gift className="w-5 h-5" />
+          Giveaways Management
+        </CardTitle>
+        <CardDescription>
+          Manage community giveaways and remove inappropriate items.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded">
+            {success}
+          </div>
+        )}
+
+        {giveaways.length > 0 ? (
+          <div className="border rounded-lg divide-y max-h-96 overflow-y-auto">
+            {giveaways.map((giveaway) => (
+              <div key={giveaway.id} className="flex items-start justify-between p-4 hover:bg-slate-50">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-base">{giveaway.title}</h4>
+                  <p className="text-sm text-slate-600 mt-1">{giveaway.description}</p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Status: <Badge variant={giveaway.status === "available" ? "default" : "secondary"}>{giveaway.status}</Badge>
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteGiveaway(giveaway.id)}
+                  disabled={deletingId === giveaway.id}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-slate-500 py-8 border rounded-lg">
+            No giveaways to manage.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function HelpRequestManager({ helpRequests }: { helpRequests: any[] }) {
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
+  const handleDeleteHelpRequest = async (requestId: string) => {
+    if (!confirm("Are you sure you want to delete this help request?")) {
+      return
+    }
+
+    setDeletingId(requestId)
+    setError("")
+    setSuccess("")
+
+    try {
+      await deleteHelpRequest(requestId)
+      setSuccess("Help request deleted successfully!")
+    } catch (err: any) {
+      console.error("[v0] Delete help request error:", err)
+      setError(err.message || "Failed to delete help request")
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <HelpCircle className="w-5 h-5" />
+          Help Requests Management
+        </CardTitle>
+        <CardDescription>
+          Manage community help requests and resolve issues.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded">
+            {success}
+          </div>
+        )}
+
+        {helpRequests.length > 0 ? (
+          <div className="border rounded-lg divide-y max-h-96 overflow-y-auto">
+            {helpRequests.map((request) => (
+              <div key={request.id} className="flex items-start justify-between p-4 hover:bg-slate-50">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-base">{request.title}</h4>
+                  <p className="text-sm text-slate-600 mt-1">{request.description}</p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Type: {request.request_type} • Status: <Badge variant={request.status === "open" ? "default" : "secondary"}>{request.status}</Badge>
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteHelpRequest(request.id)}
+                  disabled={deletingId === request.id}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-slate-500 py-8 border rounded-lg">
+            No help requests to manage.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function CharitableItemManager({ charitableItems }: { charitableItems: any[] }) {
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
+  const handleDeleteCharitableItem = async (itemId: string) => {
+    if (!confirm("Are you sure you want to delete this charitable item?")) {
+      return
+    }
+
+    setDeletingId(itemId)
+    setError("")
+    setSuccess("")
+
+    try {
+      await deleteCharitableItem(itemId)
+      setSuccess("Charitable item deleted successfully!")
+    } catch (err: any) {
+      console.error("[v0] Delete charitable item error:", err)
+      setError(err.message || "Failed to delete charitable item")
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Heart className="w-5 h-5" />
+          Charitable Items Management
+        </CardTitle>
+        <CardDescription>
+          Manage charitable drives and community needs.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded">
+            {success}
+          </div>
+        )}
+
+        {charitableItems.length > 0 ? (
+          <div className="border rounded-lg divide-y max-h-96 overflow-y-auto">
+            {charitableItems.map((item) => (
+              <div key={item.id} className="flex items-start justify-between p-4 hover:bg-slate-50">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-base">{item.title}</h4>
+                  <p className="text-sm text-slate-600 mt-1">{item.description}</p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Type: {item.item_type} • Status: <Badge variant={item.status === "active" ? "default" : "secondary"}>{item.status}</Badge>
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteCharitableItem(item.id)}
+                  disabled={deletingId === item.id}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-slate-500 py-8 border rounded-lg">
+            No charitable items to manage.
+          </p>
+        )}
       </CardContent>
     </Card>
   )
