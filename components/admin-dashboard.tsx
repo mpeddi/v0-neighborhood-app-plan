@@ -2,6 +2,7 @@
 
 import React from "react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ stats, recentEvents, residences, allowedEmails, clubs, giveaways, helpRequests, charitableItems }: AdminDashboardProps) {
+  const router = useRouter()
   const claimRate = stats.totalResidences > 0 ? (stats.claimedResidences / stats.totalResidences) * 100 : 0
 
   return (
@@ -398,6 +400,7 @@ function ClubManager({ clubs }: { clubs: any[] }) {
     try {
       await deleteClub(clubId)
       setSuccess("Club deleted successfully!")
+      router.refresh()
     } catch (err: any) {
       console.error("[v0] Delete club error:", err)
       setError(err.message || "Failed to delete club")
@@ -479,6 +482,7 @@ function GiveawayManager({ giveaways }: { giveaways: any[] }) {
     try {
       await deleteGiveaway(giveawayId)
       setSuccess("Giveaway deleted successfully!")
+      router.refresh()
     } catch (err: any) {
       console.error("[v0] Delete giveaway error:", err)
       setError(err.message || "Failed to delete giveaway")
@@ -560,6 +564,7 @@ function HelpRequestManager({ helpRequests }: { helpRequests: any[] }) {
     try {
       await deleteHelpRequest(requestId)
       setSuccess("Help request deleted successfully!")
+      router.refresh()
     } catch (err: any) {
       console.error("[v0] Delete help request error:", err)
       setError(err.message || "Failed to delete help request")
@@ -641,6 +646,7 @@ function CharitableItemManager({ charitableItems }: { charitableItems: any[] }) 
     try {
       await deleteCharitableItem(itemId)
       setSuccess("Charitable item deleted successfully!")
+      router.refresh()
     } catch (err: any) {
       console.error("[v0] Delete charitable item error:", err)
       setError(err.message || "Failed to delete charitable item")
