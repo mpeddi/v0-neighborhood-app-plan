@@ -265,42 +265,6 @@ export default function ResidenceManager({ residences }: ResidenceManagerProps) 
             )
           })}
         </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            {residence.is_claimed && <CheckCircle2 className="w-4 h-4 text-green-600" />}
-                            <span className="text-slate-700">{residence.last_name}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {editingId !== residence.id && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEdit(residence)}
-                          className="text-slate-600 hover:text-slate-800"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {editingId !== residence.id && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(residence.id)}
-                          disabled={deletingId === residence.id}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
       </CardContent>
     </Card>
   )
