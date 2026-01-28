@@ -84,17 +84,17 @@ async function AdminContent() {
   // Get all community items for management
   const { data: allGiveaways } = await supabase
     .from("giveaways")
-    .select("*, users(*)")
+    .select("*")
     .order("created_at", { ascending: false })
 
   const { data: allHelpRequests } = await supabase
     .from("help_requests")
-    .select("*, users(*)")
+    .select("*")
     .order("created_at", { ascending: false })
 
   const { data: allCharitableItems } = await supabase
     .from("charitable_items")
-    .select("*, users(*)")
+    .select("*")
     .order("created_at", { ascending: false })
 
   const stats = {
