@@ -384,6 +384,7 @@ function WhitelistManager({ allowedEmails, residences }: { allowedEmails: any[],
 }
 
 function ClubManager({ clubs }: { clubs: any[] }) {
+  const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -466,6 +467,7 @@ function ClubManager({ clubs }: { clubs: any[] }) {
 }
 
 function GiveawayManager({ giveaways }: { giveaways: any[] }) {
+  const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -548,6 +550,7 @@ function GiveawayManager({ giveaways }: { giveaways: any[] }) {
 }
 
 function HelpRequestManager({ helpRequests }: { helpRequests: any[] }) {
+  const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -630,6 +633,7 @@ function HelpRequestManager({ helpRequests }: { helpRequests: any[] }) {
 }
 
 function CharitableItemManager({ charitableItems }: { charitableItems: any[] }) {
+  const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
