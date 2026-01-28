@@ -183,3 +183,69 @@ export async function updateUserPhone(phoneNumber: string) {
 
   revalidatePath("/profile")
 }
+
+export async function deleteResidence(residenceId: string) {
+  const supabase = await createClient()
+  
+  // Get authenticated user and check if admin
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single()
+
+  if (!userProfile?.is_admin) throw new Error("Admin access required")
+
+  // Use service client to bypass RLS for deleting residences
+  const serviceClient = await createServiceClient()
+  
+  const { error } = await serviceClient
+    .from("residences")
+    .delete()
+    .eq("id", residenceId)
+
+  if (error) throw new Error(error.message || "Failed to delete residence")
+
+  revalidatePath("/admin")
+  revalidatePath("/directory")
+}
+
+export async function addResidence(address: string, streetName: string, lastName: string) {
+  const supabase = await createClient()
+  
+  // Get authenticated user and check if admin
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single()
+
+  if (!userProfile?.is_admin) throw new Error("Admin access required")
+
+  if (!address.trim() || !streetName.trim() || !lastName.trim()) {
+    throw new Error("All fields are required")
+  }
+
+  // Use service client to bypass RLS for adding residences
+  const serviceClient = await createServiceClient()
+  
+  const { error } = await serviceClient
+    .from("residences")
+    .insert({
+      address: address.trim(),
+      street_name: streetName,
+      last_name: lastName.trim(),
+      phone_number: "",
+    })
+
+  if (error) throw new Error(error.message || "Failed to add residence")
+
+  revalidatePath("/admin")
+  revalidatePath("/directory")
+}

@@ -1,11 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Home, Pencil, Save, X, CheckCircle2 } from "lucide-react"
-import { updateResidence } from "@/app/actions/auth-actions"
+import { Home, Pencil, Save, X, CheckCircle2, Trash2, Plus } from "lucide-react"
+import { updateResidence, deleteResidence, addResidence } from "@/app/actions/auth-actions"
 
 interface Residence {
   id: string
@@ -20,11 +21,16 @@ interface ResidenceManagerProps {
 }
 
 export default function ResidenceManager({ residences }: ResidenceManagerProps) {
+  const router = useRouter()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState("")
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [addingToStreet, setAddingToStreet] = useState<string | null>(null)
+  const [newAddress, setNewAddress] = useState("")
+  const [newLastName, setNewLastName] = useState("")
 
   const handleEdit = (residence: Residence) => {
     setEditingId(residence.id)
@@ -51,10 +57,32 @@ export default function ResidenceManager({ residences }: ResidenceManagerProps) 
       setSuccess("Homeowner name updated successfully!")
       setEditingId(null)
       setEditValue("")
+      router.refresh()
     } catch (err: any) {
       setError(err.message || "Failed to update residence")
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async (residenceId: string) => {
+    if (!confirm("Are you sure you want to delete this address? This action cannot be undone.")) {
+      return
+    }
+
+    setDeletingId(residenceId)
+    setError("")
+    setSuccess("")
+
+    try {
+      await deleteResidence(residenceId)
+      setSuccess("Address deleted successfully!")
+      router.refresh()
+    } catch (err: any) {
+      console.error("[v0] Delete residence error:", err)
+      setError(err.message || "Failed to delete address")
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -90,7 +118,20 @@ export default function ResidenceManager({ residences }: ResidenceManagerProps) 
 
             return (
               <div key={street} className="space-y-3">
-                <h4 className="font-semibold text-lg border-b pb-2">{street}</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-lg border-b pb-2 flex-1">{street}</h4>
+                  {street === "Fanok Rd" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAddingToStreet(street)}
+                      className="ml-2"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add
+                    </Button>
+                  )}
+                </div>
                 <div className="grid gap-2">
                   {streetResidences.map((residence) => (
                     <div
@@ -147,9 +188,79 @@ export default function ResidenceManager({ residences }: ResidenceManagerProps) 
                           <Pencil className="w-4 h-4" />
                         </Button>
                       )}
+                      {editingId !== residence.id && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(residence.id)}
+                          disabled={deletingId === residence.id}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
+
+                {addingToStreet === street && (
+                  <div className="p-4 border-2 border-dashed rounded bg-blue-50">
+                    <div className="space-y-3">
+                      <h5 className="font-medium text-sm">Add new address to {street}</h5>
+                      <div className="flex gap-2">
+                        <Input
+                          value={newAddress}
+                          onChange={(e) => setNewAddress(e.target.value)}
+                          placeholder="e.g., 5 Fanok Rd"
+                          className="flex-1"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          value={newLastName}
+                          onChange={(e) => setNewLastName(e.target.value)}
+                          placeholder="Homeowner last name"
+                          className="flex-1"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            if (!newAddress.trim() || !newLastName.trim()) {
+                              setError("Please fill in all fields")
+                              return
+                            }
+                            
+                            try {
+                              await addResidence(newAddress, street, newLastName)
+                              setSuccess(`Address added successfully!`)
+                              setAddingToStreet(null)
+                              setNewAddress("")
+                              setNewLastName("")
+                              router.refresh()
+                            } catch (err: any) {
+                              setError(err.message || "Failed to add address")
+                            }
+                          }}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setAddingToStreet(null)
+                            setNewAddress("")
+                            setNewLastName("")
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
