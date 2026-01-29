@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
 export async function createCharitableItem(title: string, description: string, itemType: string) {
@@ -112,7 +113,9 @@ export async function deleteCharitableItem(itemId: string) {
     throw new Error("Only admins or item creator can delete this")
   }
 
-  const { error } = await supabase
+  // Use service client to bypass RLS
+  const serviceClient = await createServiceClient()
+  const { error } = await serviceClient
     .from("charitable_items")
     .delete()
     .eq("id", itemId)
@@ -120,6 +123,7 @@ export async function deleteCharitableItem(itemId: string) {
   if (error) throw error
 
   revalidatePath("/community")
+  revalidatePath("/admin")
 }
 
 export async function deleteGiveaway(giveawayId: string) {
@@ -148,7 +152,9 @@ export async function deleteGiveaway(giveawayId: string) {
     throw new Error("Only admins or giveaway creator can delete this")
   }
 
-  const { error } = await supabase
+  // Use service client to bypass RLS
+  const serviceClient = await createServiceClient()
+  const { error } = await serviceClient
     .from("giveaways")
     .delete()
     .eq("id", giveawayId)
@@ -156,6 +162,7 @@ export async function deleteGiveaway(giveawayId: string) {
   if (error) throw error
 
   revalidatePath("/community")
+  revalidatePath("/admin")
 }
 
 export async function deleteHelpRequest(requestId: string) {
@@ -184,7 +191,9 @@ export async function deleteHelpRequest(requestId: string) {
     throw new Error("Only admins or request creator can delete this")
   }
 
-  const { error } = await supabase
+  // Use service client to bypass RLS
+  const serviceClient = await createServiceClient()
+  const { error } = await serviceClient
     .from("help_requests")
     .delete()
     .eq("id", requestId)
@@ -192,4 +201,5 @@ export async function deleteHelpRequest(requestId: string) {
   if (error) throw error
 
   revalidatePath("/community")
+  revalidatePath("/admin")
 }
