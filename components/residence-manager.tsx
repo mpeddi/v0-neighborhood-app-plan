@@ -50,12 +50,15 @@ export default function ResidenceManager({ residences }: ResidenceManagerProps) 
     setIsSaving(true)
     setError("")
     try {
+      console.log("[v0] Updating residence:", residenceId, "with name:", editValue)
       await updateResidence(residenceId, editValue)
+      console.log("[v0] Update successful")
       setSuccess("Homeowner name updated successfully!")
       setEditingId(null)
       setEditValue("")
       router.refresh()
     } catch (err: any) {
+      console.error("[v0] Update residence error:", err)
       setError(err.message || "Failed to update residence")
     } finally {
       setIsSaving(false)

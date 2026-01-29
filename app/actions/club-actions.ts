@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
 export async function createClub(name: string, description: string) {
@@ -131,8 +132,9 @@ export async function deleteClub(clubId: string) {
     throw new Error("Only club creator or admin can delete this club")
   }
 
-  // Delete club (this will cascade to delete club_members, club_posts, etc.)
-  const { error } = await supabase
+  // Delete club using service client to bypass RLS (this will cascade to delete club_members, club_posts, etc.)
+  const serviceClient = await createServiceClient()
+  const { error } = await serviceClient
     .from("clubs")
     .delete()
     .eq("id", clubId)
@@ -140,4 +142,5 @@ export async function deleteClub(clubId: string) {
   if (error) throw error
 
   revalidatePath("/clubs")
+  revalidatePath("/admin")
 }
