@@ -185,12 +185,10 @@ export async function updateUserPhone(phoneNumber: string) {
 }
 
 export async function deleteResidence(residenceId: string) {
-  console.log("[v0] deleteResidence called with ID:", residenceId)
   const supabase = await createClient()
   
   // Get authenticated user and check if admin
   const { data: { user } } = await supabase.auth.getUser()
-  console.log("[v0] Current user:", user?.id)
   if (!user) throw new Error("Unauthorized")
 
   const { data: userProfile } = await supabase
@@ -199,27 +197,20 @@ export async function deleteResidence(residenceId: string) {
     .eq("id", user.id)
     .single()
 
-  console.log("[v0] User profile:", userProfile)
   if (!userProfile?.is_admin) throw new Error("Admin access required")
 
   // Use service client to bypass RLS for deleting residences
-  console.log("[v0] Creating service client...")
   const serviceClient = await createServiceClient()
-  console.log("[v0] Service client created, attempting delete...")
   
-  const { data, error } = await serviceClient
+  const { error } = await serviceClient
     .from("residences")
     .delete()
     .eq("id", residenceId)
 
-  console.log("[v0] Delete response - data:", data, "error:", error)
-  
   if (error) throw new Error(error.message || "Failed to delete residence")
 
-  console.log("[v0] Delete successful, revalidating paths...")
   revalidatePath("/admin")
   revalidatePath("/directory")
-  console.log("[v0] Paths revalidated")
 }
 
 export async function addResidence(address: string, streetName: string, lastName: string) {
