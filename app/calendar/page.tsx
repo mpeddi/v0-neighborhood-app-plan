@@ -6,15 +6,26 @@ import { Navigation } from "@/components/navigation"
 async function CalendarContent() {
   const supabase = await createClient()
 
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
+  // Get authenticated user (may be null in preview mode)
+  let user = null
+  let userProfile = null
   
-  // Get user profile to check if admin
-  const { data: userProfile } = await supabase
-    .from("users")
-    .select("*, residences(*)")
-    .eq("id", user?.id)
-    .single()
+  try {
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    user = authUser
+    
+    if (user) {
+      const { data: profile } = await supabase
+        .from("users")
+        .select("*, residences(*)")
+        .eq("id", user.id)
+        .single()
+      userProfile = profile
+    }
+  } catch (err) {
+    // Allow preview mode without auth
+    console.log("[v0] Running in preview mode without authentication")
+  }
 
   const isAdmin = userProfile?.is_admin ?? false
 
