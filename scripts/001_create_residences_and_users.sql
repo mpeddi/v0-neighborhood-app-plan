@@ -39,6 +39,11 @@ CREATE POLICY "residences_update_own"
     )
   );
 
+CREATE POLICY "residences_delete_authenticated"
+  ON public.residences FOR DELETE
+  TO authenticated
+  USING (true);
+
 -- RLS Policies for users (users can view all, update only own)
 CREATE POLICY "users_select_authenticated"
   ON public.users FOR SELECT
