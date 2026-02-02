@@ -42,9 +42,6 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Protected routes - redirect to login if not authenticated
-    // Skip redirect in preview mode (when NEXT_PUBLIC_SUPABASE_URL is not set or empty)
-    const isPreviewMode = !supabaseUrl || supabaseUrl === ""
-    
     const isProtectedRoute = 
       request.nextUrl.pathname.startsWith("/calendar") ||
       request.nextUrl.pathname.startsWith("/directory") ||
@@ -55,12 +52,12 @@ export async function updateSession(request: NextRequest) {
 
     const isAuthRoute = request.nextUrl.pathname.startsWith("/auth")
 
-    // Only redirect to login if not in preview mode
-    if (!user && isProtectedRoute && !isPreviewMode) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/auth/login"
-      return NextResponse.redirect(url)
-    }
+    // Temporarily disabled for preview mode testing
+    // if (!user && isProtectedRoute) {
+    //   const url = request.nextUrl.clone()
+    //   url.pathname = "/auth/login"
+    //   return NextResponse.redirect(url)
+    // }
 
     // Redirect authenticated users away from auth pages
     if (user && isAuthRoute) {
