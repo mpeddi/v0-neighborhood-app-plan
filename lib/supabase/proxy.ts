@@ -52,12 +52,11 @@ export async function updateSession(request: NextRequest) {
 
     const isAuthRoute = request.nextUrl.pathname.startsWith("/auth")
 
-    // Temporarily disabled for preview mode testing
-    // if (!user && isProtectedRoute) {
-    //   const url = request.nextUrl.clone()
-    //   url.pathname = "/auth/login"
-    //   return NextResponse.redirect(url)
-    // }
+    if (!user && isProtectedRoute) {
+      const url = request.nextUrl.clone()
+      url.pathname = "/auth/login"
+      return NextResponse.redirect(url)
+    }
 
     // Redirect authenticated users away from auth pages
     if (user && isAuthRoute) {
