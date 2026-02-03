@@ -167,10 +167,33 @@ export async function claimResidence(residenceId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
+  // Check if user is whitelisted for this residence
+  const { data: allowedEmail } = await supabase
+    .from("allowed_emails")
+    .select("*")
+    .eq("residence_id", residenceId)
+    .eq("email", user.email!)
+    .single()
+
+  if (!allowedEmail) {
+    throw new Error("You are not authorized to claim this residence. Please check if your email is whitelisted.")
+  }
+
   // Use service client to bypass RLS
   const serviceClient = await createServiceClient()
   
-  // Update user's residence
+  // Check if user already has a residence
+  const { data: existingUser } = await serviceClient
+    .from("users")
+    .select("residence_id")
+    .eq("id", user.id)
+    .single()
+
+  if (existingUser?.residence_id) {
+    throw new Error("You have already claimed a residence. You can only claim one residence per account.")
+  }
+
+  // Update user's residence - now multiple users can have the same residence_id
   const { error: userError } = await serviceClient
     .from("users")
     .update({ residence_id: residenceId })
@@ -178,13 +201,15 @@ export async function claimResidence(residenceId: string) {
 
   if (userError) throw new Error(userError.message || "Failed to claim residence")
 
-  // Mark residence as claimed
-  const { error: residenceError } = await serviceClient
-    .from("residences")
-    .update({ is_claimed: true })
-    .eq("id", residenceId)
-
-  if (residenceError) throw new Error(residenceError.message || "Failed to update residence status")
+  // Log the claim action
+  await logAuditAction({
+    userId: user.id,
+    action: "CLAIM",
+    resourceType: "residence",
+    resourceId: residenceId,
+    oldValues: { residence_id: null },
+    newValues: { residence_id: residenceId, email: user.email }
+  })
 
   revalidatePath("/profile")
   revalidatePath("/directory")
