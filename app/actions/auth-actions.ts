@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { validateResidenceName } from "@/lib/validation"
+import { logAuditAction } from "@/lib/audit-logger"
 import { redirect } from "next/navigation"
 
 export async function signOut() {
@@ -106,6 +108,14 @@ export async function bulkAddAllowedEmails(emails: string[]) {
 }
 
 export async function updateResidence(residenceId: string, lastName: string) {
+  // Validate input
+  const validation = validateResidenceName(lastName)
+  if (!validation.valid) {
+    throw new Error(validation.error || "Invalid residence name")
+  }
+  
+  const validatedName = lastName.trim()
+  
   const supabase = await createClient()
   
   // Get authenticated user and check if admin
@@ -120,15 +130,31 @@ export async function updateResidence(residenceId: string, lastName: string) {
 
   if (!userProfile?.is_admin) throw new Error("Admin access required")
 
-  // Use service client to bypass RLS for updating residences
+  // Get old value for audit log
   const serviceClient = await createServiceClient()
-  
+  const { data: oldResidence } = await serviceClient
+    .from("residences")
+    .select("last_name")
+    .eq("id", residenceId)
+    .single()
+
+  // Update residence
   const { error } = await serviceClient
     .from("residences")
-    .update({ last_name: lastName.trim() })
+    .update({ last_name: validatedName })
     .eq("id", residenceId)
 
   if (error) throw new Error(error.message || "Failed to update residence")
+
+  // Log the action
+  await logAuditAction({
+    userId: user.id,
+    action: "UPDATE",
+    resourceType: "residence",
+    resourceId: residenceId,
+    oldValues: { last_name: oldResidence?.last_name },
+    newValues: { last_name: validatedName }
+  })
 
   revalidatePath("/admin")
   revalidatePath("/directory")
@@ -199,15 +225,31 @@ export async function deleteResidence(residenceId: string) {
 
   if (!userProfile?.is_admin) throw new Error("Admin access required")
 
-  // Use service client to bypass RLS for deleting residences
+  // Get residence data before deletion for audit log
   const serviceClient = await createServiceClient()
-  
+  const { data: residenceToDelete } = await serviceClient
+    .from("residences")
+    .select("*")
+    .eq("id", residenceId)
+    .single()
+
+  // Delete the residence
   const { error } = await serviceClient
     .from("residences")
     .delete()
     .eq("id", residenceId)
 
   if (error) throw new Error(error.message || "Failed to delete residence")
+
+  // Log the action
+  await logAuditAction({
+    userId: user.id,
+    action: "DELETE",
+    resourceType: "residence",
+    resourceId: residenceId,
+    oldValues: residenceToDelete,
+    newValues: null
+  })
 
   revalidatePath("/admin")
   revalidatePath("/directory")

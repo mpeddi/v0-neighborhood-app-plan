@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { validateDescription, validateEventTitle } from "@/lib/validation"
+import { logAuditAction } from "@/lib/audit-logger"
 
 export async function createCharitableItem(title: string, description: string, itemType: string) {
   const supabase = await createClient()

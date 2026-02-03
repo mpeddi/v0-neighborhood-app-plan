@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { validateClubName, validateDescription } from "@/lib/validation"
+import { logAuditAction } from "@/lib/audit-logger"
 
 export async function createClub(name: string, description: string) {
   const supabase = await createClient()
@@ -132,14 +134,31 @@ export async function deleteClub(clubId: string) {
     throw new Error("Only club creator or admin can delete this club")
   }
 
-  // Delete club using service client to bypass RLS (this will cascade to delete club_members, club_posts, etc.)
+  // Get full club data before deletion for audit log
   const serviceClient = await createServiceClient()
+  const { data: clubToDelete } = await serviceClient
+    .from("clubs")
+    .select("*")
+    .eq("id", clubId)
+    .single()
+
+  // Delete club using service client to bypass RLS (this will cascade to delete club_members, club_posts, etc.)
   const { error } = await serviceClient
     .from("clubs")
     .delete()
     .eq("id", clubId)
 
   if (error) throw error
+
+  // Log the action
+  await logAuditAction({
+    userId: user.id,
+    action: "DELETE",
+    resourceType: "club",
+    resourceId: clubId,
+    oldValues: clubToDelete,
+    newValues: null
+  })
 
   revalidatePath("/clubs")
   revalidatePath("/admin")
