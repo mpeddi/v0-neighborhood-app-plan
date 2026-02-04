@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, UserPlus, UserMinus } from "lucide-react"
 import { joinClub, leaveClub } from "@/app/actions/club-actions"
+import { CreateClubPostDialog } from "@/components/create-club-post-dialog"
 import { formatDistanceToNow } from "date-fns"
 
 interface ClubDetailProps {
@@ -78,7 +79,10 @@ export function ClubDetail({ club, members, posts, isMember, userId, userResiden
       {/* Posts */}
       {isMember ? (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-slate-800">Club Posts</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-800">Club Posts</h2>
+            <CreateClubPostDialog clubId={club.id} />
+          </div>
           {posts.length > 0 ? (
             posts.map((post) => (
               <Card key={post.id}>

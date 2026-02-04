@@ -65,18 +65,41 @@ export async function leaveClub(clubId: string) {
 }
 
 export async function createClubPost(clubId: string, title: string, description: string, postType: string) {
+  // Validate input
+  const titleValidation = validateEventTitle(title)
+  if (!titleValidation.valid) {
+    throw new Error(titleValidation.error || "Invalid post title")
+  }
+
+  const descriptionValidation = validateDescription(description)
+  if (!descriptionValidation.valid) {
+    throw new Error(descriptionValidation.error || "Invalid description")
+  }
+
   const supabase = await createClient()
   
   // Get authenticated user
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
+  // Check if user is a member of this club
+  const { data: membership } = await supabase
+    .from("club_members")
+    .select("id")
+    .eq("club_id", clubId)
+    .eq("user_id", user.id)
+    .single()
+
+  if (!membership) {
+    throw new Error("You must be a member of this club to post")
+  }
+
   const { error } = await supabase
     .from("club_posts")
     .insert({ 
       club_id: clubId, 
-      title, 
-      description, 
+      title: title.trim(), 
+      description: description.trim(), 
       post_type: postType,
       user_id: user.id 
     })
