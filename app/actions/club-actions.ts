@@ -152,12 +152,13 @@ export async function deleteClub(clubId: string) {
 
   // Log the action
   await logAuditAction({
-    userId: user.id,
-    action: "DELETE",
-    resourceType: "club",
-    resourceId: clubId,
-    oldValues: clubToDelete,
-    newValues: null
+    admin_id: user.id,
+    action: "delete",
+    resource_type: "club",
+    resource_id: clubId,
+    old_values: clubToDelete,
+    new_values: null,
+    description: `Deleted club: ${clubToDelete?.name || clubId}`
   })
 
   revalidatePath("/clubs")
