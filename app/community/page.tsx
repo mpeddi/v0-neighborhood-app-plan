@@ -9,22 +9,34 @@ async function CommunityContent() {
   // Get authenticated user
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Get charitable items
+  // Get charitable items with user and comment data
   const { data: charitableItems } = await supabase
     .from("charitable_items")
-    .select("*")
+    .select(`
+      *,
+      users:created_by(id, residences(last_name)),
+      community_comments(id, content, created_at, user_id, users:user_id(residences(last_name)))
+    `)
     .order("created_at", { ascending: false })
 
-  // Get giveaways
+  // Get giveaways with user and comment data
   const { data: giveaways } = await supabase
     .from("giveaways")
-    .select("*")
+    .select(`
+      *,
+      users:created_by(id, residences(last_name)),
+      community_comments(id, content, created_at, user_id, users:user_id(residences(last_name)))
+    `)
     .order("created_at", { ascending: false })
 
-  // Get help requests
+  // Get help requests with user and comment data
   const { data: helpRequests } = await supabase
     .from("help_requests")
-    .select("*")
+    .select(`
+      *,
+      users:created_by(id, residences(last_name)),
+      community_comments(id, content, created_at, user_id, users:user_id(residences(last_name)))
+    `)
     .order("created_at", { ascending: false })
 
   return (
