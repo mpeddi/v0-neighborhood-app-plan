@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { CreateHelpRequestDialog } from "@/components/create-help-request-dialog"
+import { CommunityCommentDialog } from "@/components/community-comment-dialog"
 
 interface HelpRequestsSectionProps {
   items: any[]
@@ -35,6 +36,10 @@ export function HelpRequestsSection({ items }: HelpRequestsSectionProps) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-slate-700">{item.description}</p>
+                
+                <div className="pt-4 flex gap-2">
+                  <CommunityCommentDialog itemId={item.id} itemType="help_request" label="Offer Help" />
+                </div>
 
                 {item.community_comments && item.community_comments.length > 0 && (
                   <div className="space-y-2 pt-4 border-t">

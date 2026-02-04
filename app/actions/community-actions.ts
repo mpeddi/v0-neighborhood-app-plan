@@ -106,6 +106,12 @@ export async function createHelpRequest(title: string, description: string, requ
 }
 
 export async function addCommunityComment(itemId: string, itemType: string, content: string) {
+  // Validate input
+  const validation = validateDescription(content)
+  if (!validation.valid) {
+    throw new Error(validation.error || "Invalid comment")
+  }
+
   const supabase = await createClient()
 
   // Get authenticated user
@@ -114,7 +120,7 @@ export async function addCommunityComment(itemId: string, itemType: string, cont
 
   const { error } = await supabase
     .from("community_comments")
-    .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content })
+    .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
 
   if (error) throw error
 
