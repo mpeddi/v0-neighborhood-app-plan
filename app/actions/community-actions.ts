@@ -4,9 +4,19 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { validateDescription, validateEventTitle } from "@/lib/validation"
-import { logAuditAction } from "@/lib/audit-logger"
 
 export async function createCharitableItem(title: string, description: string, itemType: string) {
+  // Validate input
+  const titleValidation = validateEventTitle(title)
+  if (!titleValidation.valid) {
+    throw new Error(titleValidation.error || "Invalid item title")
+  }
+
+  const descriptionValidation = validateDescription(description)
+  if (!descriptionValidation.valid) {
+    throw new Error(descriptionValidation.error || "Invalid description")
+  }
+
   const supabase = await createClient()
 
   // Get authenticated user
@@ -15,7 +25,7 @@ export async function createCharitableItem(title: string, description: string, i
 
   const { error } = await supabase
     .from("charitable_items")
-    .insert({ title, description, item_type: itemType, created_by: user.id })
+    .insert({ title: title.trim(), description: description.trim(), item_type: itemType, created_by: user.id })
 
   if (error) throw error
 
@@ -23,6 +33,17 @@ export async function createCharitableItem(title: string, description: string, i
 }
 
 export async function createGiveaway(title: string, description: string) {
+  // Validate input
+  const titleValidation = validateEventTitle(title)
+  if (!titleValidation.valid) {
+    throw new Error(titleValidation.error || "Invalid giveaway title")
+  }
+
+  const descriptionValidation = validateDescription(description)
+  if (!descriptionValidation.valid) {
+    throw new Error(descriptionValidation.error || "Invalid description")
+  }
+
   const supabase = await createClient()
 
   // Get authenticated user
@@ -30,8 +51,8 @@ export async function createGiveaway(title: string, description: string) {
   if (!user) throw new Error("Unauthorized")
 
   const { error } = await supabase.from("giveaways").insert({ 
-    title, 
-    description, 
+    title: title.trim(), 
+    description: description.trim(), 
     created_by: user.id 
   })
 
@@ -58,6 +79,17 @@ export async function claimGiveaway(giveawayId: string) {
 }
 
 export async function createHelpRequest(title: string, description: string, requestType: string) {
+  // Validate input
+  const titleValidation = validateEventTitle(title)
+  if (!titleValidation.valid) {
+    throw new Error(titleValidation.error || "Invalid request title")
+  }
+
+  const descriptionValidation = validateDescription(description)
+  if (!descriptionValidation.valid) {
+    throw new Error(descriptionValidation.error || "Invalid description")
+  }
+
   const supabase = await createClient()
 
   // Get authenticated user
@@ -66,7 +98,7 @@ export async function createHelpRequest(title: string, description: string, requ
 
   const { error } = await supabase
     .from("help_requests")
-    .insert({ title, description, request_type: requestType, created_by: user.id })
+    .insert({ title: title.trim(), description: description.trim(), request_type: requestType, created_by: user.id })
 
   if (error) throw error
 

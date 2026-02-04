@@ -148,12 +148,13 @@ export async function updateResidence(residenceId: string, lastName: string) {
 
   // Log the action
   await logAuditAction({
-    userId: user.id,
-    action: "UPDATE",
-    resourceType: "residence",
-    resourceId: residenceId,
-    oldValues: { last_name: oldResidence?.last_name },
-    newValues: { last_name: validatedName }
+    admin_id: user.id,
+    action: "update",
+    resource_type: "residence",
+    resource_id: residenceId,
+    old_values: { last_name: oldResidence?.last_name },
+    new_values: { last_name: validatedName },
+    description: `Updated residence name from "${oldResidence?.last_name}" to "${validatedName}"`
   })
 
   revalidatePath("/admin")
@@ -203,12 +204,13 @@ export async function claimResidence(residenceId: string) {
 
   // Log the claim action
   await logAuditAction({
-    userId: user.id,
-    action: "CLAIM",
-    resourceType: "residence",
-    resourceId: residenceId,
-    oldValues: { residence_id: null },
-    newValues: { residence_id: residenceId, email: user.email }
+    admin_id: user.id,
+    action: "create",
+    resource_type: "residence_claim",
+    resource_id: residenceId,
+    old_values: { residence_id: null },
+    new_values: { residence_id: residenceId },
+    description: `User claimed residence: ${residenceId}`
   })
 
   revalidatePath("/profile")
@@ -268,12 +270,13 @@ export async function deleteResidence(residenceId: string) {
 
   // Log the action
   await logAuditAction({
-    userId: user.id,
-    action: "DELETE",
-    resourceType: "residence",
-    resourceId: residenceId,
-    oldValues: residenceToDelete,
-    newValues: null
+    admin_id: user.id,
+    action: "delete",
+    resource_type: "residence",
+    resource_id: residenceId,
+    old_values: residenceToDelete,
+    new_values: null,
+    description: `Deleted residence: ${residenceToDelete?.address || residenceId}`
   })
 
   revalidatePath("/admin")
