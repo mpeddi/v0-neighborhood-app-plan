@@ -9,7 +9,7 @@ async function DirectoryContent() {
   // Get authenticated user
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Get all residences
+  // Get all residences with user count
   const { data: residences } = await supabase
     .from("residences")
     .select(`
@@ -19,7 +19,13 @@ async function DirectoryContent() {
     .order("street_name", { ascending: true })
     .order("address", { ascending: true })
 
-  return <DirectoryGrid residences={residences || []} currentUserId={user?.id ?? null} />
+  // Add computed is_claimed property based on user count
+  const residencesWithStatus = (residences || []).map(residence => ({
+    ...residence,
+    is_claimed: (residence.users?.length ?? 0) > 0
+  }))
+
+  return <DirectoryGrid residences={residencesWithStatus} currentUserId={user?.id ?? null} />
 }
 
 export default async function DirectoryPage() {
