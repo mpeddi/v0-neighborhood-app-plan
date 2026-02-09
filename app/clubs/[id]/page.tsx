@@ -28,21 +28,43 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
     notFound()
   }
 
-  // Get club members
-  const { data: members } = await supabase
+  // Get club members with residence data
+  const { data: members, error: membersError } = await supabase
     .from("club_members")
-    .select("*, users(*, residences(*))")
+    .select(`
+      id,
+      user_id,
+      joined_at,
+      users!club_members_user_id_fkey(id, residences(last_name))
+    `)
     .eq("club_id", id)
+
+  if (membersError) {
+    console.log("[v0] Members error:", membersError)
+  }
 
   // Check if user is a member
   const isMember = members?.some(m => m.user_id === user?.id) ?? false
 
-  // Get club posts
-  const { data: posts } = await supabase
+  // Get club posts with user and comment data
+  const { data: posts, error: postsError } = await supabase
     .from("club_posts")
-    .select("*, users(*, residences(*)), club_post_comments(*, users(*, residences(*)))")
+    .select(`
+      id,
+      title,
+      description,
+      post_type,
+      created_at,
+      user_id,
+      users!club_posts_user_id_fkey(id, residences(last_name)),
+      club_post_comments(id, content, created_at, user_id, users!club_post_comments_user_id_fkey(residences(last_name)))
+    `)
     .eq("club_id", id)
     .order("created_at", { ascending: false })
+
+  if (postsError) {
+    console.log("[v0] Posts error:", postsError)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
