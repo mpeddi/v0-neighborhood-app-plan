@@ -7,7 +7,8 @@ import { formatDistanceToNow } from "date-fns"
 import { CreateGiveawayDialog } from "@/components/create-giveaway-dialog"
 import { CommunityCommentDialog } from "@/components/community-comment-dialog"
 import { claimGiveaway } from "@/app/actions/community-actions"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 interface GiveawaysSectionProps {
   items: any[]
@@ -16,6 +17,39 @@ interface GiveawaysSectionProps {
 
 export function GiveawaysSection({ items, userId }: GiveawaysSectionProps) {
   const [claimingId, setClaimingId] = useState<string | null>(null)
+  const [itemsWithUsers, setItemsWithUsers] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const supabase = createClient()
+      
+      // Fetch user data for each comment
+      const itemsWithData = await Promise.all(
+        items.map(async (item) => {
+          const commentsWithUsers = await Promise.all(
+            (item.community_comments || []).map(async (comment: any) => {
+              const { data: userData } = await supabase
+                .from("users")
+                .select("residences(last_name)")
+                .eq("id", comment.user_id)
+                .single()
+              return {
+                ...comment,
+                users: userData
+              }
+            })
+          )
+          return {
+            ...item,
+            community_comments: commentsWithUsers
+          }
+        })
+      )
+      setItemsWithUsers(itemsWithData)
+    }
+
+    fetchUserData()
+  }, [items])
 
   const handleClaim = async (giveawayId: string) => {
     setClaimingId(giveawayId)
@@ -28,13 +62,15 @@ export function GiveawaysSection({ items, userId }: GiveawaysSectionProps) {
     }
   }
 
+  const displayItems = itemsWithUsers.length > 0 ? itemsWithUsers : items
+
   return (
     <div className="space-y-6">
       <CreateGiveawayDialog />
 
       <div className="space-y-4">
-        {items.length > 0 ? (
-          items.map((item) => (
+        {displayItems.length > 0 ? (
+          displayItems.map((item) => (
             <Card key={item.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">

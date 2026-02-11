@@ -15,7 +15,7 @@ async function CommunityContent() {
     .select(`
       *,
       users!charitable_items_created_by_fkey(id, residences(last_name)),
-      community_comments(id, content, created_at, user_id, users(residences(last_name)))
+      community_comments(*)
     `)
     .order("created_at", { ascending: false })
 
@@ -29,7 +29,7 @@ async function CommunityContent() {
     .select(`
       *,
       users!giveaways_created_by_fkey(id, residences(last_name)),
-      community_comments(id, content, created_at, user_id, users(residences(last_name)))
+      community_comments(*)
     `)
     .order("created_at", { ascending: false })
 
@@ -43,7 +43,7 @@ async function CommunityContent() {
     .select(`
       *,
       users!help_requests_created_by_fkey(id, residences(last_name)),
-      community_comments(id, content, created_at, user_id, users(residences(last_name)))
+      community_comments(*)
     `)
     .order("created_at", { ascending: false })
 
