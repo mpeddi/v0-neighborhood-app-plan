@@ -10,7 +10,8 @@ export function createClient() {
     if (!url || !key) {
       console.error("[v0] Missing Supabase env vars in browser:", { 
         url: url ? "set" : "missing", 
-        key: key ? "set" : "missing" 
+        key: key ? "set" : "missing",
+        available: typeof window !== 'undefined' ? Object.keys(window.__env__ || {}).filter((k: string) => k.includes('SUPABASE')) : []
       })
       throw new Error("Supabase environment variables not configured")
     }
