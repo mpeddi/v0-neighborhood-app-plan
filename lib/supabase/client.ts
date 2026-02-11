@@ -4,7 +4,18 @@ let supabaseClient: ReturnType<typeof createBrowserClient> | null = null
 
 export function createClient() {
   if (!supabaseClient) {
-    supabaseClient = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!url || !key) {
+      console.error("[v0] Missing Supabase env vars in browser:", { 
+        url: url ? "set" : "missing", 
+        key: key ? "set" : "missing" 
+      })
+      throw new Error("Supabase environment variables not configured")
+    }
+    
+    supabaseClient = createBrowserClient(url, key)
   }
   return supabaseClient
 }
