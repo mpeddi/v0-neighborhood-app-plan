@@ -1,67 +1,76 @@
-import { Suspense } from "react"
-import { createClient } from "@/lib/supabase/server"
+'use client'
+
+import { Suspense, useEffect, useState } from "react"
 import { Navigation } from "@/components/navigation"
 import { CommunityTabs } from "@/components/community-tabs"
 
-async function CommunityContent() {
-  const supabase = await createClient()
+function CommunityContent() {
+  const [charitableItems, setCharitableItems] = useState([])
+  const [giveaways, setGiveaways] = useState([])
+  const [helpRequests, setHelpRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
+  useEffect(() => {
+    async function fetchCommunityData() {
+      try {
+        setLoading(true)
+        setError(null)
 
-  // Get charitable items with user and comment data
-  const { data: charitableItems, error: charitableError } = await supabase
-    .from("charitable_items")
-    .select(`
-      *,
-      users!charitable_items_created_by_fkey(id, residences(last_name)),
-      community_comments(*)
-    `)
-    .order("created_at", { ascending: false })
+        // Get current user
+        const authRes = await fetch("/api/auth/user")
+        if (authRes.ok) {
+          const userData = await authRes.json()
+          setUserId(userData.id || null)
+        }
 
-  if (charitableError) {
-    console.log("[v0] Charitable items error:", charitableError)
+        // Fetch all community data in parallel
+        const [charitableRes, giveawaysRes, helpRes] = await Promise.all([
+          fetch("/api/community/charitable-items"),
+          fetch("/api/community/giveaways"),
+          fetch("/api/community/help-requests"),
+        ])
+
+        const [charitable, giveawaysData, helpData] = await Promise.all([
+          charitableRes.json(),
+          giveawaysRes.json(),
+          helpRes.json(),
+        ])
+
+        setCharitableItems(Array.isArray(charitable) ? charitable : [])
+        setGiveaways(Array.isArray(giveawaysData) ? giveawaysData : [])
+        setHelpRequests(Array.isArray(helpData) ? helpData : [])
+      } catch (err) {
+        console.error("[v0] Error fetching community data:", err)
+        setError("Failed to load community board")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCommunityData()
+  }, [])
+
+  if (loading) {
+    return <div className="text-center py-8">Loading community board...</div>
   }
 
-  // Get giveaways with user and comment data
-  const { data: giveaways, error: giveawaysError } = await supabase
-    .from("giveaways")
-    .select(`
-      *,
-      users!giveaways_created_by_fkey(id, residences(last_name)),
-      community_comments(*)
-    `)
-    .order("created_at", { ascending: false })
-
-  if (giveawaysError) {
-    console.log("[v0] Giveaways error:", giveawaysError)
-  }
-
-  // Get help requests with user and comment data
-  const { data: helpRequests, error: helpError } = await supabase
-    .from("help_requests")
-    .select(`
-      *,
-      users!help_requests_created_by_fkey(id, residences(last_name)),
-      community_comments(*)
-    `)
-    .order("created_at", { ascending: false })
-
-  if (helpError) {
-    console.log("[v0] Help requests error:", helpError)
+  if (error) {
+    return <div className="text-center py-8 text-red-600">{error}</div>
   }
 
   return (
     <CommunityTabs
-      charitableItems={charitableItems || []}
-      giveaways={giveaways || []}
-      helpRequests={helpRequests || []}
-      userId={user?.id ?? null}
+      charitableItems={charitableItems}
+      giveaways={giveaways}
+      helpRequests={helpRequests}
+      userId={userId}
     />
   )
 }
 
-export default async function CommunityPage() {
+export default function CommunityPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       <Navigation currentPage="community" isAdmin={false} />
