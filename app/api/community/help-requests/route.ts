@@ -1,40 +1,35 @@
-import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
-    const cookieStore = await cookies()
-    
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-          },
-        },
-      }
-    )
+    // Access environment variables directly
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    const { data: helpRequests, error } = await supabase
-      .from("help_requests")
-      .select(`
-        *,
-        users!help_requests_created_by_fkey(id, residences(last_name)),
-        community_comments(*)
-      `)
-      .order("created_at", { ascending: false })
+    console.log("[v0] Help requests API - Env vars:", { url: url ? "set" : "missing", key: key ? "set" : "missing" })
 
-    if (error) {
-      console.error("[v0] Help requests API error:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!url || !key) {
+      console.error("[v0] Missing Supabase credentials")
+      return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
     }
 
+    // Use fetch directly to query Supabase
+    const response = await fetch(`${url}/rest/v1/help_requests?select=*,users!help_requests_created_by_fkey(id,residences(last_name)),community_comments(*)&order=created_at.desc`, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      console.error("[v0] Supabase API error:", response.status, error)
+      return NextResponse.json({ error: "Failed to fetch data" }, { status: response.status })
+    }
+
+    const helpRequests = await response.json()
+    console.log("[v0] Help requests fetched:", helpRequests?.length || 0)
     return NextResponse.json(helpRequests || [])
   } catch (error) {
     console.error("[v0] Help requests API exception:", error)
