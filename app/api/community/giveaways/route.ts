@@ -1,38 +1,37 @@
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
+import { createServerClient } from "@supabase/ssr"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    if (!url || !key) {
+    if (!supabaseUrl || !supabaseAnonKey) {
       return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
     }
 
-    // Build query URL - just fetch giveaways with user info
-    const queryParams = new URLSearchParams({
-      select: "*,users:created_by(id,residences(last_name))",
-      order: "created_at.desc"
-    })
-    
-    const fetchUrl = `${url}/rest/v1/giveaways?${queryParams.toString()}`
-
-    const response = await fetch(fetchUrl, {
-      method: "GET",
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
+    // Create authenticated supabase client using the request cookies (user's session)
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll() {
+          // We don't need to set cookies in a GET request
+        },
       },
     })
 
-    if (!response.ok) {
-      const error = await response.text()
+    const { data: giveaways, error } = await supabase
+      .from("giveaways")
+      .select("*,users:created_by(id,residences(last_name))")
+      .order("created_at", { ascending: false })
+
+    if (error) {
       console.error("[v0] Giveaways error:", error)
-      return NextResponse.json({ error: "Failed to fetch data" }, { status: response.status })
+      return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 })
     }
 
-    const giveaways = await response.json()
     return NextResponse.json(giveaways || [])
   } catch (error) {
     console.error("[v0] Giveaways exception:", error)
