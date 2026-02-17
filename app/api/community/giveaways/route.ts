@@ -13,19 +13,32 @@ export async function GET() {
       return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
     }
 
+    // Build query URL with proper encoding
+    const queryParams = new URLSearchParams({
+      select: "*,users!giveaways_created_by_fkey(id,residences(last_name)),community_comments(*)",
+      order: "created_at.desc"
+    })
+    
+    const fetchUrl = `${url}/rest/v1/giveaways?${queryParams.toString()}`
+    console.log("[v0] Fetching from:", fetchUrl.replace(key, "***"))
+
     // Use fetch directly to query Supabase
-    const response = await fetch(`${url}/rest/v1/giveaways?select=*,users!giveaways_created_by_fkey(id,residences(last_name)),community_comments(*)&order=created_at.desc`, {
+    const response = await fetch(fetchUrl, {
+      method: "GET",
       headers: {
         apikey: key,
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
+        Prefer: "return=representation"
       },
     })
+
+    console.log("[v0] Response status:", response.status)
 
     if (!response.ok) {
       const error = await response.text()
       console.error("[v0] Supabase API error:", response.status, error)
-      return NextResponse.json({ error: "Failed to fetch data" }, { status: response.status })
+      return NextResponse.json({ error: `Failed to fetch data: ${error}` }, { status: response.status })
     }
 
     const giveaways = await response.json()
@@ -33,6 +46,6 @@ export async function GET() {
     return NextResponse.json(giveaways || [])
   } catch (error) {
     console.error("[v0] Giveaways API exception:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: `Internal server error: ${String(error)}` }, { status: 500 })
   }
 }
