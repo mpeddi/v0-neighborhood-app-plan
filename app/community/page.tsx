@@ -32,11 +32,15 @@ function CommunityContent() {
           fetch("/api/community/help-requests"),
         ])
 
+        console.log("[v0] Response statuses:", charitableRes.status, giveawaysRes.status, helpRes.status)
+
         const [charitable, giveawaysData, helpData] = await Promise.all([
           charitableRes.json(),
           giveawaysRes.json(),
           helpRes.json(),
         ])
+
+        console.log("[v0] Community data:", { charitable, giveawaysData, helpData })
 
         setCharitableItems(Array.isArray(charitable) ? charitable : [])
         setGiveaways(Array.isArray(giveawaysData) ? giveawaysData : [])
