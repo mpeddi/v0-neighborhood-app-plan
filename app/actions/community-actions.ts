@@ -115,8 +115,12 @@ export async function addCommunityComment(itemId: string, itemType: string, cont
   const supabase = await createClient()
 
   // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError) {
+    console.error("[v0] Auth error getting user:", authError)
+    throw new Error(`Authentication failed: ${authError.message}`)
+  }
+  if (!user) throw new Error("Unauthorized - no user found")
 
   const { error } = await supabase
     .from("community_comments")
