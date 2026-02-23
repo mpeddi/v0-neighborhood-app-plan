@@ -11,7 +11,7 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error) {
-      console.error("[v0] Auth error in getAuthenticatedUser:", error)
+      console.error("[v0] Auth error:", error.message)
       throw new Error(`Session expired: ${error.message}`)
     }
     
@@ -21,57 +21,63 @@ async function getAuthenticatedUser() {
     
     return { user, supabase }
   } catch (err: any) {
-    console.error("[v0] getAuthenticatedUser error:", err.message)
+    console.error("[v0] Auth error:", err.message)
     throw err
   }
 }
 
 export async function createCharitableItem(title: string, description: string, itemType: string) {
-  // Validate input
-  const titleValidation = validateEventTitle(title)
-  if (!titleValidation.valid) {
-    throw new Error(titleValidation.error || "Invalid item title")
+  try {
+    const titleValidation = validateEventTitle(title)
+    if (!titleValidation.valid) {
+      throw new Error(titleValidation.error || "Invalid item title")
+    }
+
+    const descriptionValidation = validateDescription(description)
+    if (!descriptionValidation.valid) {
+      throw new Error(descriptionValidation.error || "Invalid description")
+    }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("charitable_items")
+      .insert({ title: title.trim(), description: description.trim(), item_type: itemType, created_by: user.id })
+
+    if (error) throw error
+
+    revalidatePath("/community")
+  } catch (err: any) {
+    throw new Error(err.message || "Failed to create item")
   }
-
-  const descriptionValidation = validateDescription(description)
-  if (!descriptionValidation.valid) {
-    throw new Error(descriptionValidation.error || "Invalid description")
-  }
-
-  const { user, supabase } = await getAuthenticatedUser()
-
-  const { error } = await supabase
-    .from("charitable_items")
-    .insert({ title: title.trim(), description: description.trim(), item_type: itemType, created_by: user.id })
-
-  if (error) throw error
-
-  revalidatePath("/community")
 }
 
 export async function createGiveaway(title: string, description: string) {
-  // Validate input
-  const titleValidation = validateEventTitle(title)
-  if (!titleValidation.valid) {
-    throw new Error(titleValidation.error || "Invalid giveaway title")
+  try {
+    const titleValidation = validateEventTitle(title)
+    if (!titleValidation.valid) {
+      throw new Error(titleValidation.error || "Invalid giveaway title")
+    }
+
+    const descriptionValidation = validateDescription(description)
+    if (!descriptionValidation.valid) {
+      throw new Error(descriptionValidation.error || "Invalid description")
+    }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase.from("giveaways").insert({ 
+      title: title.trim(), 
+      description: description.trim(), 
+      created_by: user.id 
+    })
+
+    if (error) throw error
+
+    revalidatePath("/community")
+  } catch (err: any) {
+    throw new Error(err.message || "Failed to create giveaway")
   }
-
-  const descriptionValidation = validateDescription(description)
-  if (!descriptionValidation.valid) {
-    throw new Error(descriptionValidation.error || "Invalid description")
-  }
-
-  const { user, supabase } = await getAuthenticatedUser()
-
-  const { error } = await supabase.from("giveaways").insert({ 
-    title: title.trim(), 
-    description: description.trim(), 
-    created_by: user.id 
-  })
-
-  if (error) throw error
-
-  revalidatePath("/community")
 }
 
 export async function claimGiveaway(giveawayId: string) {
@@ -88,62 +94,57 @@ export async function claimGiveaway(giveawayId: string) {
 }
 
 export async function createHelpRequest(title: string, description: string, requestType: string) {
-  // Validate input
-  const titleValidation = validateEventTitle(title)
-  if (!titleValidation.valid) {
-    throw new Error(titleValidation.error || "Invalid request title")
+  try {
+    const titleValidation = validateEventTitle(title)
+    if (!titleValidation.valid) {
+      throw new Error(titleValidation.error || "Invalid request title")
+    }
+
+    const descriptionValidation = validateDescription(description)
+    if (!descriptionValidation.valid) {
+      throw new Error(descriptionValidation.error || "Invalid description")
+    }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("help_requests")
+      .insert({ title: title.trim(), description: description.trim(), request_type: requestType, created_by: user.id })
+
+    if (error) throw error
+
+    revalidatePath("/community")
+  } catch (err: any) {
+    throw new Error(err.message || "Failed to create help request")
   }
-
-  const descriptionValidation = validateDescription(description)
-  if (!descriptionValidation.valid) {
-    throw new Error(descriptionValidation.error || "Invalid description")
-  }
-
-  const { user, supabase } = await getAuthenticatedUser()
-
-  const { error } = await supabase
-    .from("help_requests")
-    .insert({ title: title.trim(), description: description.trim(), request_type: requestType, created_by: user.id })
-
-  if (error) throw error
-
-  revalidatePath("/community")
 }
 
 export async function addCommunityComment(itemId: string, itemType: string, content: string) {
   try {
-    // Validate input
     const validation = validateDescription(content)
     if (!validation.valid) {
       throw new Error(validation.error || "Invalid comment")
     }
 
-    console.log("[v0] addCommunityComment - Getting authenticated user...")
     const { user, supabase } = await getAuthenticatedUser()
-    console.log("[v0] addCommunityComment - User authenticated:", user.id)
 
-    console.log("[v0] addCommunityComment - Inserting comment...")
     const { error } = await supabase
       .from("community_comments")
       .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
 
     if (error) {
-      console.error("[v0] Database error inserting comment:", error)
-      throw error
+      throw new Error(`Database error: ${error.message}`)
     }
 
-    console.log("[v0] addCommunityComment - Success, revalidating path...")
     revalidatePath("/community")
   } catch (err: any) {
-    console.error("[v0] addCommunityComment error:", err.message || err)
-    throw err
+    throw new Error(err.message || "Failed to add comment")
   }
 }
 
 export async function deleteCharitableItem(itemId: string) {
   const { user, supabase } = await getAuthenticatedUser()
 
-  // Check if user is admin or item creator
   const { data: item } = await supabase
     .from("charitable_items")
     .select("created_by")
@@ -162,7 +163,6 @@ export async function deleteCharitableItem(itemId: string) {
     throw new Error("Only admins or item creator can delete this")
   }
 
-  // Use service client to bypass RLS
   const serviceClient = await createServiceClient()
   const { error } = await serviceClient
     .from("charitable_items")
@@ -178,7 +178,6 @@ export async function deleteCharitableItem(itemId: string) {
 export async function deleteGiveaway(giveawayId: string) {
   const { user, supabase } = await getAuthenticatedUser()
 
-  // Check if user is admin or giveaway creator
   const { data: giveaway } = await supabase
     .from("giveaways")
     .select("created_by")
@@ -197,7 +196,6 @@ export async function deleteGiveaway(giveawayId: string) {
     throw new Error("Only admins or giveaway creator can delete this")
   }
 
-  // Use service client to bypass RLS
   const serviceClient = await createServiceClient()
   const { error } = await serviceClient
     .from("giveaways")
@@ -213,7 +211,6 @@ export async function deleteGiveaway(giveawayId: string) {
 export async function deleteHelpRequest(requestId: string) {
   const { user, supabase } = await getAuthenticatedUser()
 
-  // Check if user is admin or request creator
   const { data: helpRequest } = await supabase
     .from("help_requests")
     .select("created_by")
@@ -232,7 +229,6 @@ export async function deleteHelpRequest(requestId: string) {
     throw new Error("Only admins or request creator can delete this")
   }
 
-  // Use service client to bypass RLS
   const serviceClient = await createServiceClient()
   const { error } = await serviceClient
     .from("help_requests")
