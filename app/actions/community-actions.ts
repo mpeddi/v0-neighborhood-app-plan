@@ -111,33 +111,24 @@ export async function createHelpRequest(title: string, description: string, requ
 }
 
 export async function addCommunityComment(itemId: string, itemType: string, content: string) {
-  try {
-    // Validate input
-    const validation = validateDescription(content)
-    if (!validation.valid) {
-      throw new Error(validation.error || "Invalid comment")
-    }
-
-    console.log("[v0] addCommunityComment - Getting authenticated user...")
-    const { user, supabase } = await getAuthenticatedUser()
-    console.log("[v0] addCommunityComment - User authenticated:", user.id)
-
-    console.log("[v0] addCommunityComment - Inserting comment...")
-    const { error } = await supabase
-      .from("community_comments")
-      .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
-
-    if (error) {
-      console.error("[v0] Database error inserting comment:", error)
-      throw error
-    }
-
-    console.log("[v0] addCommunityComment - Success, revalidating path...")
-    revalidatePath("/community")
-  } catch (err: any) {
-    console.error("[v0] addCommunityComment error:", err.message || err)
-    throw err
+  // Validate input
+  const validation = validateDescription(content)
+  if (!validation.valid) {
+    throw new Error(validation.error || "Invalid comment")
   }
+
+  const { user, supabase } = await getAuthenticatedUser()
+
+  const { error } = await supabase
+    .from("community_comments")
+    .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
+
+  if (error) {
+    console.error("[v0] RLS Policy Error:", error.message)
+    throw new Error(`Failed to add comment: ${error.message}`)
+  }
+
+  revalidatePath("/community")
 }
 
 export async function deleteCharitableItem(itemId: string) {
