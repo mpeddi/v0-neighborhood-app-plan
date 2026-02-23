@@ -1,7 +1,6 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { validateDescription, validateEventTitle } from "@/lib/validation"
 
@@ -18,10 +17,10 @@ async function getAuthenticatedUser() {
 export async function createCharitableItem(title: string, description: string, itemType: string) {
   try {
     const titleValidation = validateEventTitle(title)
-    if (!titleValidation.valid) throw new Error(titleValidation.error || "Invalid item title")
+    if (!titleValidation.valid) return { success: false, error: titleValidation.error || "Invalid item title" }
 
     const descriptionValidation = validateDescription(description)
-    if (!descriptionValidation.valid) throw new Error(descriptionValidation.error || "Invalid description")
+    if (!descriptionValidation.valid) return { success: false, error: descriptionValidation.error || "Invalid description" }
 
     const { user, supabase } = await getAuthenticatedUser()
 
@@ -29,10 +28,183 @@ export async function createCharitableItem(title: string, description: string, i
       .from("charitable_items")
       .insert({ title: title.trim(), description: description.trim(), item_type: itemType, created_by: user.id })
 
-    if (error) throw new Error(error.message)
+    if (error) return { success: false, error: error.message }
+    
     revalidatePath("/community")
+    return { success: true }
   } catch (err: any) {
-    throw new Error(err.message || "Failed to create item")
+    console.error("[v0] createCharitableItem error:", err)
+    return { success: false, error: err.message || "Failed to create item" }
+  }
+}
+
+export async function createGiveaway(title: string, description: string) {
+  try {
+    const titleValidation = validateEventTitle(title)
+    if (!titleValidation.valid) return { success: false, error: titleValidation.error || "Invalid giveaway title" }
+
+    const descriptionValidation = validateDescription(description)
+    if (!descriptionValidation.valid) return { success: false, error: descriptionValidation.error || "Invalid description" }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase.from("giveaways").insert({ 
+      title: title.trim(), 
+      description: description.trim(), 
+      created_by: user.id 
+    })
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/community")
+    return { success: true }
+  } catch (err: any) {
+    console.error("[v0] createGiveaway error:", err)
+    return { success: false, error: err.message || "Failed to create giveaway" }
+  }
+}
+
+export async function claimGiveaway(giveawayId: string) {
+  try {
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("giveaways")
+      .update({ status: "claimed", claimed_by: user.id })
+      .eq("id", giveawayId)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/community")
+    return { success: true }
+  } catch (err: any) {
+    console.error("[v0] claimGiveaway error:", err)
+    return { success: false, error: err.message || "Failed to claim giveaway" }
+  }
+}
+
+export async function createHelpRequest(title: string, description: string, requestType: string) {
+  try {
+    const titleValidation = validateEventTitle(title)
+    if (!titleValidation.valid) return { success: false, error: titleValidation.error || "Invalid request title" }
+
+    const descriptionValidation = validateDescription(description)
+    if (!descriptionValidation.valid) return { success: false, error: descriptionValidation.error || "Invalid description" }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("help_requests")
+      .insert({ title: title.trim(), description: description.trim(), request_type: requestType, created_by: user.id })
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/community")
+    return { success: true }
+  } catch (err: any) {
+    console.error("[v0] createHelpRequest error:", err)
+    return { success: false, error: err.message || "Failed to create help request" }
+  }
+}
+
+export async function addCommunityComment(itemId: string, itemType: string, content: string) {
+  try {
+    const validation = validateDescription(content)
+    if (!validation.valid) return { success: false, error: validation.error || "Invalid comment" }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("community_comments")
+      .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/community")
+    return { success: true }
+  } catch (err: any) {
+    console.error("[v0] addCommunityComment error:", err)
+    return { success: false, error: err.message || "Failed to add comment" }
+  }
+}
+
+export async function deleteCharitableItem(itemId: string) {
+  try {
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("charitable_items")
+      .delete()
+      .eq("id", itemId)
+      .eq("created_by", user.id)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/community")
+    return { success: true }
+  } catch (err: any) {
+    console.error("[v0] deleteCharitableItem error:", err)
+    return { success: false, error: err.message || "Failed to delete item" }
+  }
+}
+
+export async function deleteGiveaway(giveawayId: string) {
+  try {
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("giveaways")
+      .delete()
+      .eq("id", giveawayId)
+      .eq("created_by", user.id)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/community")
+    return { success: true }
+  } catch (err: any) {
+    console.error("[v0] deleteGiveaway error:", err)
+    return { success: false, error: err.message || "Failed to delete giveaway" }
+  }
+}
+
+export async function deleteHelpRequest(helpRequestId: string) {
+  try {
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("help_requests")
+      .delete()
+      .eq("id", helpRequestId)
+      .eq("created_by", user.id)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/community")
+    return { success: true }
+  } catch (err: any) {
+    console.error("[v0] deleteHelpRequest error:", err)
+    return { success: false, error: err.message || "Failed to delete help request" }
+  }
+}
+
+export async function deleteComment(commentId: string) {
+  try {
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("community_comments")
+      .delete()
+      .eq("id", commentId)
+      .eq("user_id", user.id)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/community")
+    return { success: true }
+  } catch (err: any) {
+    console.error("[v0] deleteComment error:", err)
+    return { success: false, error: err.message || "Failed to delete comment" }
   }
 }
 
