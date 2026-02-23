@@ -1,6 +1,6 @@
 'use server'
 
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function setPasswordWithToken(email: string, password: string, token: string) {
   // Verify the token
@@ -14,7 +14,10 @@ export async function setPasswordWithToken(email: string, password: string, toke
   }
 
   try {
-    const supabase = await createServiceClient()
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     // Get the user by email
     const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers()
