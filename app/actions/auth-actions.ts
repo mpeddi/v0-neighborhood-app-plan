@@ -1,17 +1,191 @@
-"use server"
+'use server'
 
-import { createClient } from "@/lib/supabase/server"
-import { createServiceClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
-import { validateResidenceName } from "@/lib/validation"
-import { logAuditAction } from "@/lib/audit-logger"
-import { redirect } from "next/navigation"
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { validateEmail, validatePassword } from '@/lib/validation'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+import { validateResidenceName } from '@/lib/validation'
+import { logAuditAction } from '@/lib/audit-logger'
+
+// ============================================================================
+// AUTHENTICATION FUNCTIONS
+// ============================================================================
+
+export async function signUpWithPassword(email: string, password: string) {
+  try {
+    // Validate inputs
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.valid) {
+      return { success: false, error: 'Invalid email' }
+    }
+
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      return { success: false, error: passwordValidation.error }
+    }
+
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {}
+          },
+        },
+      }
+    )
+
+    // Check if email is in whitelist
+    const { data: whitelisted, error: whitelistError } = await supabase
+      .from('allowed_emails')
+      .select('email')
+      .eq('email', email.toLowerCase())
+      .single()
+
+    if (whitelistError || !whitelisted) {
+      // Generic error - don't reveal if email is whitelisted
+      return { success: false, error: 'Invalid email' }
+    }
+
+    // Sign up with Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email: email.toLowerCase(),
+      password,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      console.error('[v0] Signup error:', error.message)
+      // Generic error for security
+      return { success: false, error: 'Invalid email' }
+    }
+
+    return { success: true, message: 'Sign up successful' }
+  } catch (error) {
+    console.error('[v0] Signup exception:', error)
+    return { success: false, error: 'Invalid email' }
+  }
+}
+
+export async function signInWithPassword(email: string, password: string) {
+  try {
+    // Validate inputs
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.valid) {
+      return { success: false, error: 'Invalid email or password' }
+    }
+
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      return { success: false, error: 'Invalid email or password' }
+    }
+
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {}
+          },
+        },
+      }
+    )
+
+    // Sign in with Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase(),
+      password,
+    })
+
+    if (error) {
+      console.error('[v0] Sign in error:', error.message)
+      // Generic error - don't reveal if email exists
+      return { success: false, error: 'Invalid email or password' }
+    }
+
+    return { success: true, message: 'Sign in successful' }
+  } catch (error) {
+    console.error('[v0] Sign in exception:', error)
+    return { success: false, error: 'Invalid email or password' }
+  }
+}
+
+export async function resetPassword(email: string) {
+  try {
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.valid) {
+      return { success: false, error: 'Invalid email' }
+    }
+
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {}
+          },
+        },
+      }
+    )
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase(), {
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?type=recovery`,
+    })
+
+    if (error) {
+      console.error('[v0] Password reset error:', error.message)
+    }
+
+    // Always return success to prevent email enumeration
+    return { success: true, message: 'If an account exists with this email, you will receive a password reset link.' }
+  } catch (error) {
+    console.error('[v0] Password reset exception:', error)
+    // Still return success to prevent enumeration
+    return { success: true, message: 'If an account exists with this email, you will receive a password reset link.' }
+  }
+}
 
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect("/auth/login")
+  redirect('/auth/login')
 }
+
+// ============================================================================
+// ADMIN FUNCTIONS (unchanged)
+// ============================================================================
 
 export async function addAllowedEmail(email: string, residenceId?: string) {
   const supabase = await createClient()

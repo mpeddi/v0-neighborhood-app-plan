@@ -141,3 +141,20 @@ export function validatePhone(phone: string | null | undefined): ValidationResul
 
   return { valid: true }
 }
+
+// Password validation - simple, just minimum length
+export function validatePassword(password: string | null | undefined): ValidationResult {
+  if (!password || typeof password !== 'string') {
+    return { valid: false, error: 'Password is required' }
+  }
+
+  if (password.length < 8) {
+    return { valid: false, error: 'Password must be at least 8 characters' }
+  }
+
+  if (password.length > 128) {
+    return { valid: false, error: 'Password must be 128 characters or less' }
+  }
+
+  return { valid: true }
+}
