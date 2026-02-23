@@ -5,6 +5,12 @@ import { createClient } from '@supabase/supabase-js'
 export async function setPasswordWithToken(email: string, password: string, token: string) {
   // Verify the token
   const adminToken = process.env.ADMIN_PASSWORD_SETUP_TOKEN
+  console.log('[v0] Setup Debug - Token env var exists:', !!adminToken)
+  console.log('[v0] Setup Debug - Submitted token:', token)
+  console.log('[v0] Setup Debug - Expected token length:', adminToken?.length)
+  console.log('[v0] Setup Debug - Submitted token length:', token.length)
+  console.log('[v0] Setup Debug - Tokens match:', token === adminToken)
+  
   if (!adminToken || token !== adminToken) {
     return { success: false, error: 'Invalid or missing setup token' }
   }
