@@ -5,6 +5,22 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { validateDescription, validateEventTitle } from "@/lib/validation"
 
+async function getAuthenticatedUser() {
+  const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error) {
+    console.error("[v0] Auth error:", error.message)
+    throw new Error("Session expired. Please log in again.")
+  }
+  
+  if (!user) {
+    throw new Error("You must be logged in to perform this action")
+  }
+  
+  return { user, supabase }
+}
+
 export async function createCharitableItem(title: string, description: string, itemType: string) {
   // Validate input
   const titleValidation = validateEventTitle(title)
@@ -17,11 +33,7 @@ export async function createCharitableItem(title: string, description: string, i
     throw new Error(descriptionValidation.error || "Invalid description")
   }
 
-  const supabase = await createClient()
-
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  const { user, supabase } = await getAuthenticatedUser()
 
   const { error } = await supabase
     .from("charitable_items")
@@ -44,11 +56,7 @@ export async function createGiveaway(title: string, description: string) {
     throw new Error(descriptionValidation.error || "Invalid description")
   }
 
-  const supabase = await createClient()
-
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  const { user, supabase } = await getAuthenticatedUser()
 
   const { error } = await supabase.from("giveaways").insert({ 
     title: title.trim(), 
@@ -62,11 +70,7 @@ export async function createGiveaway(title: string, description: string) {
 }
 
 export async function claimGiveaway(giveawayId: string) {
-  const supabase = await createClient()
-
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  const { user, supabase } = await getAuthenticatedUser()
 
   const { error } = await supabase
     .from("giveaways")
@@ -90,11 +94,7 @@ export async function createHelpRequest(title: string, description: string, requ
     throw new Error(descriptionValidation.error || "Invalid description")
   }
 
-  const supabase = await createClient()
-
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  const { user, supabase } = await getAuthenticatedUser()
 
   const { error } = await supabase
     .from("help_requests")
@@ -112,15 +112,7 @@ export async function addCommunityComment(itemId: string, itemType: string, cont
     throw new Error(validation.error || "Invalid comment")
   }
 
-  const supabase = await createClient()
-
-  // Get authenticated user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError) {
-    console.error("[v0] Auth error getting user:", authError)
-    throw new Error(`Authentication failed: ${authError.message}`)
-  }
-  if (!user) throw new Error("Unauthorized - no user found")
+  const { user, supabase } = await getAuthenticatedUser()
 
   const { error } = await supabase
     .from("community_comments")
@@ -132,11 +124,7 @@ export async function addCommunityComment(itemId: string, itemType: string, cont
 }
 
 export async function deleteCharitableItem(itemId: string) {
-  const supabase = await createClient()
-
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  const { user, supabase } = await getAuthenticatedUser()
 
   // Check if user is admin or item creator
   const { data: item } = await supabase
@@ -171,11 +159,7 @@ export async function deleteCharitableItem(itemId: string) {
 }
 
 export async function deleteGiveaway(giveawayId: string) {
-  const supabase = await createClient()
-
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  const { user, supabase } = await getAuthenticatedUser()
 
   // Check if user is admin or giveaway creator
   const { data: giveaway } = await supabase
@@ -210,11 +194,7 @@ export async function deleteGiveaway(giveawayId: string) {
 }
 
 export async function deleteHelpRequest(requestId: string) {
-  const supabase = await createClient()
-
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  const { user, supabase } = await getAuthenticatedUser()
 
   // Check if user is admin or request creator
   const { data: helpRequest } = await supabase
