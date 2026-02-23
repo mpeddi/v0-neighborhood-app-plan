@@ -6,19 +6,24 @@ import { revalidatePath } from "next/cache"
 import { validateDescription, validateEventTitle } from "@/lib/validation"
 
 async function getAuthenticatedUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  
-  if (error) {
-    console.error("[v0] Auth error:", error.message)
-    throw new Error("Session expired. Please log in again.")
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.error("[v0] Auth error in getAuthenticatedUser:", error)
+      throw new Error(`Session expired: ${error.message}`)
+    }
+    
+    if (!user) {
+      throw new Error("You must be logged in to perform this action")
+    }
+    
+    return { user, supabase }
+  } catch (err: any) {
+    console.error("[v0] getAuthenticatedUser error:", err.message)
+    throw err
   }
-  
-  if (!user) {
-    throw new Error("You must be logged in to perform this action")
-  }
-  
-  return { user, supabase }
 }
 
 export async function createCharitableItem(title: string, description: string, itemType: string) {
@@ -106,21 +111,33 @@ export async function createHelpRequest(title: string, description: string, requ
 }
 
 export async function addCommunityComment(itemId: string, itemType: string, content: string) {
-  // Validate input
-  const validation = validateDescription(content)
-  if (!validation.valid) {
-    throw new Error(validation.error || "Invalid comment")
+  try {
+    // Validate input
+    const validation = validateDescription(content)
+    if (!validation.valid) {
+      throw new Error(validation.error || "Invalid comment")
+    }
+
+    console.log("[v0] addCommunityComment - Getting authenticated user...")
+    const { user, supabase } = await getAuthenticatedUser()
+    console.log("[v0] addCommunityComment - User authenticated:", user.id)
+
+    console.log("[v0] addCommunityComment - Inserting comment...")
+    const { error } = await supabase
+      .from("community_comments")
+      .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
+
+    if (error) {
+      console.error("[v0] Database error inserting comment:", error)
+      throw error
+    }
+
+    console.log("[v0] addCommunityComment - Success, revalidating path...")
+    revalidatePath("/community")
+  } catch (err: any) {
+    console.error("[v0] addCommunityComment error:", err.message || err)
+    throw err
   }
-
-  const { user, supabase } = await getAuthenticatedUser()
-
-  const { error } = await supabase
-    .from("community_comments")
-    .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
-
-  if (error) throw error
-
-  revalidatePath("/community")
 }
 
 export async function deleteCharitableItem(itemId: string) {
