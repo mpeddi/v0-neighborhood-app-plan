@@ -27,49 +27,57 @@ async function getAuthenticatedUser() {
 }
 
 export async function createCharitableItem(title: string, description: string, itemType: string) {
-  const titleValidation = validateEventTitle(title)
-  if (!titleValidation.valid) {
-    throw new Error(titleValidation.error || "Invalid item title")
+  try {
+    const titleValidation = validateEventTitle(title)
+    if (!titleValidation.valid) {
+      throw new Error(titleValidation.error || "Invalid item title")
+    }
+
+    const descriptionValidation = validateDescription(description)
+    if (!descriptionValidation.valid) {
+      throw new Error(descriptionValidation.error || "Invalid description")
+    }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("charitable_items")
+      .insert({ title: title.trim(), description: description.trim(), item_type: itemType, created_by: user.id })
+
+    if (error) throw error
+
+    revalidatePath("/community")
+  } catch (err: any) {
+    throw new Error(err.message || "Failed to create item")
   }
-
-  const descriptionValidation = validateDescription(description)
-  if (!descriptionValidation.valid) {
-    throw new Error(descriptionValidation.error || "Invalid description")
-  }
-
-  const { user, supabase } = await getAuthenticatedUser()
-
-  const { error } = await supabase
-    .from("charitable_items")
-    .insert({ title: title.trim(), description: description.trim(), item_type: itemType, created_by: user.id })
-
-  if (error) throw error
-
-  revalidatePath("/community")
 }
 
 export async function createGiveaway(title: string, description: string) {
-  const titleValidation = validateEventTitle(title)
-  if (!titleValidation.valid) {
-    throw new Error(titleValidation.error || "Invalid giveaway title")
+  try {
+    const titleValidation = validateEventTitle(title)
+    if (!titleValidation.valid) {
+      throw new Error(titleValidation.error || "Invalid giveaway title")
+    }
+
+    const descriptionValidation = validateDescription(description)
+    if (!descriptionValidation.valid) {
+      throw new Error(descriptionValidation.error || "Invalid description")
+    }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase.from("giveaways").insert({ 
+      title: title.trim(), 
+      description: description.trim(), 
+      created_by: user.id 
+    })
+
+    if (error) throw error
+
+    revalidatePath("/community")
+  } catch (err: any) {
+    throw new Error(err.message || "Failed to create giveaway")
   }
-
-  const descriptionValidation = validateDescription(description)
-  if (!descriptionValidation.valid) {
-    throw new Error(descriptionValidation.error || "Invalid description")
-  }
-
-  const { user, supabase } = await getAuthenticatedUser()
-
-  const { error } = await supabase.from("giveaways").insert({ 
-    title: title.trim(), 
-    description: description.trim(), 
-    created_by: user.id 
-  })
-
-  if (error) throw error
-
-  revalidatePath("/community")
 }
 
 export async function claimGiveaway(giveawayId: string) {
@@ -86,45 +94,52 @@ export async function claimGiveaway(giveawayId: string) {
 }
 
 export async function createHelpRequest(title: string, description: string, requestType: string) {
-  const titleValidation = validateEventTitle(title)
-  if (!titleValidation.valid) {
-    throw new Error(titleValidation.error || "Invalid request title")
+  try {
+    const titleValidation = validateEventTitle(title)
+    if (!titleValidation.valid) {
+      throw new Error(titleValidation.error || "Invalid request title")
+    }
+
+    const descriptionValidation = validateDescription(description)
+    if (!descriptionValidation.valid) {
+      throw new Error(descriptionValidation.error || "Invalid description")
+    }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("help_requests")
+      .insert({ title: title.trim(), description: description.trim(), request_type: requestType, created_by: user.id })
+
+    if (error) throw error
+
+    revalidatePath("/community")
+  } catch (err: any) {
+    throw new Error(err.message || "Failed to create help request")
   }
-
-  const descriptionValidation = validateDescription(description)
-  if (!descriptionValidation.valid) {
-    throw new Error(descriptionValidation.error || "Invalid description")
-  }
-
-  const { user, supabase } = await getAuthenticatedUser()
-
-  const { error } = await supabase
-    .from("help_requests")
-    .insert({ title: title.trim(), description: description.trim(), request_type: requestType, created_by: user.id })
-
-  if (error) throw error
-
-  revalidatePath("/community")
 }
 
 export async function addCommunityComment(itemId: string, itemType: string, content: string) {
-  const validation = validateDescription(content)
-  if (!validation.valid) {
-    throw new Error(validation.error || "Invalid comment")
+  try {
+    const validation = validateDescription(content)
+    if (!validation.valid) {
+      throw new Error(validation.error || "Invalid comment")
+    }
+
+    const { user, supabase } = await getAuthenticatedUser()
+
+    const { error } = await supabase
+      .from("community_comments")
+      .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`)
+    }
+
+    revalidatePath("/community")
+  } catch (err: any) {
+    throw new Error(err.message || "Failed to add comment")
   }
-
-  const { user, supabase } = await getAuthenticatedUser()
-
-  const { error } = await supabase
-    .from("community_comments")
-    .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
-
-  if (error) {
-    console.error("[v0] Comment insert error:", error)
-    throw error
-  }
-
-  revalidatePath("/community")
 }
 
 export async function deleteCharitableItem(itemId: string) {
