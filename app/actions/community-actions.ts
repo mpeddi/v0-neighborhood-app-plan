@@ -51,13 +51,20 @@ export async function createCharitableItem(title: string, description: string, i
     if (!descriptionValidation.valid) return { success: false, error: descriptionValidation.error || "Invalid description" }
 
     const { user, supabase } = await getAuthenticatedUser()
+    
+    console.log("[v0] Creating charitable item for user:", user.id)
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("charitable_items")
       .insert({ title: title.trim(), description: description.trim(), item_type: itemType, created_by: user.id })
+      .select()
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      console.error("[v0] Charitable item insert error:", error)
+      return { success: false, error: error.message }
+    }
     
+    console.log("[v0] Charitable item created:", data)
     revalidatePath("/community")
     return { success: true }
   } catch (err: any) {
@@ -75,15 +82,21 @@ export async function createGiveaway(title: string, description: string) {
     if (!descriptionValidation.valid) return { success: false, error: descriptionValidation.error || "Invalid description" }
 
     const { user, supabase } = await getAuthenticatedUser()
+    
+    console.log("[v0] Creating giveaway for user:", user.id)
 
-    const { error } = await supabase.from("giveaways").insert({ 
+    const { data, error } = await supabase.from("giveaways").insert({ 
       title: title.trim(), 
       description: description.trim(), 
       created_by: user.id 
-    })
+    }).select()
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      console.error("[v0] Giveaway insert error:", error)
+      return { success: false, error: error.message }
+    }
 
+    console.log("[v0] Giveaway created:", data)
     revalidatePath("/community")
     return { success: true }
   } catch (err: any) {
@@ -120,13 +133,20 @@ export async function createHelpRequest(title: string, description: string, requ
     if (!descriptionValidation.valid) return { success: false, error: descriptionValidation.error || "Invalid description" }
 
     const { user, supabase } = await getAuthenticatedUser()
+    
+    console.log("[v0] Creating help request for user:", user.id)
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("help_requests")
       .insert({ title: title.trim(), description: description.trim(), request_type: requestType, created_by: user.id })
+      .select()
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      console.error("[v0] Help request insert error:", error)
+      return { success: false, error: error.message }
+    }
 
+    console.log("[v0] Help request created:", data)
     revalidatePath("/community")
     return { success: true }
   } catch (err: any) {
