@@ -9,12 +9,13 @@ import { CommunityCommentDialog } from "@/components/community-comment-dialog"
 interface HelpRequestsSectionProps {
   items: any[]
   userId: string | null
+  onRefresh?: () => void
 }
 
-export function HelpRequestsSection({ items }: HelpRequestsSectionProps) {
+export function HelpRequestsSection({ items, onRefresh }: HelpRequestsSectionProps) {
   return (
     <div className="space-y-6">
-      <CreateHelpRequestDialog />
+      <CreateHelpRequestDialog onSuccess={onRefresh} />
 
       <div className="space-y-4">
         {items.length > 0 ? (

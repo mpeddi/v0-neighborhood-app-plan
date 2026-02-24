@@ -10,9 +10,10 @@ interface CommunityTabsProps {
   giveaways: any[]
   helpRequests: any[]
   userId: string | null
+  onRefresh?: () => void
 }
 
-export function CommunityTabs({ charitableItems, giveaways, helpRequests, userId }: CommunityTabsProps) {
+export function CommunityTabs({ charitableItems, giveaways, helpRequests, userId, onRefresh }: CommunityTabsProps) {
   return (
     <Tabs defaultValue="charitable" className="w-full">
       <TabsList className="grid w-full grid-cols-3">
@@ -21,13 +22,13 @@ export function CommunityTabs({ charitableItems, giveaways, helpRequests, userId
         <TabsTrigger value="help">Help & Advice</TabsTrigger>
       </TabsList>
       <TabsContent value="charitable" className="mt-6">
-        <CharitableSection items={charitableItems} userId={userId} />
+        <CharitableSection items={charitableItems} userId={userId} onRefresh={onRefresh} />
       </TabsContent>
       <TabsContent value="giveaways" className="mt-6">
-        <GiveawaysSection items={giveaways} userId={userId} />
+        <GiveawaysSection items={giveaways} userId={userId} onRefresh={onRefresh} />
       </TabsContent>
       <TabsContent value="help" className="mt-6">
-        <HelpRequestsSection items={helpRequests} userId={userId} />
+        <HelpRequestsSection items={helpRequests} userId={userId} onRefresh={onRefresh} />
       </TabsContent>
     </Tabs>
   )

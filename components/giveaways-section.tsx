@@ -13,9 +13,10 @@ import { createClient } from "@/lib/supabase/client"
 interface GiveawaysSectionProps {
   items: any[]
   userId: string | null
+  onRefresh?: () => void
 }
 
-export function GiveawaysSection({ items, userId }: GiveawaysSectionProps) {
+export function GiveawaysSection({ items, userId, onRefresh }: GiveawaysSectionProps) {
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [itemsWithUsers, setItemsWithUsers] = useState<any[]>([])
 
@@ -66,7 +67,7 @@ export function GiveawaysSection({ items, userId }: GiveawaysSectionProps) {
 
   return (
     <div className="space-y-6">
-      <CreateGiveawayDialog />
+      <CreateGiveawayDialog onSuccess={onRefresh} />
 
       <div className="space-y-4">
         {displayItems.length > 0 ? (
