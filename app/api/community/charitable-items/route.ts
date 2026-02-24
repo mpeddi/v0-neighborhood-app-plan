@@ -29,9 +29,29 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("[v0] Charitable items error:", error)
-      return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 })
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Fetch comments separately since there's no formal FK relationship
+    if (charitableItems && charitableItems.length > 0) {
+      const itemIds = charitableItems.map((i: any) => i.id)
+      const { data: comments } = await supabase
+        .from("community_comments")
+        .select("*,users(id,residences(last_name))")
+        .eq("item_type", "charitable")
+        .in("item_id", itemIds)
+
+      // Attach comments to items
+      const itemsWithComments = charitableItems.map((item: any) => ({
+        ...item,
+        community_comments: comments?.filter((c: any) => c.item_id === item.id) || [],
+      }))
+
+      console.log("[v0] Charitable items fetched:", itemsWithComments.length, "items with", comments?.length || 0, "comments")
+      return NextResponse.json(itemsWithComments)
+    }
+
+    console.log("[v0] Charitable items fetched: 0 items")
     return NextResponse.json(charitableItems || [])
   } catch (error) {
     console.error("[v0] Charitable items exception:", error)

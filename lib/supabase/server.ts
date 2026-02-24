@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr"
+import { createClient as createServiceClientFn } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 
 export async function createClient() {
@@ -36,6 +37,5 @@ export async function createServiceClient() {
     throw new Error("Missing Supabase service role key")
   }
 
-  const { createClient: createServiceClientFn } = await import("@supabase/supabase-js")
   return createServiceClientFn(url, key)
 }

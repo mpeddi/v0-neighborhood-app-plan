@@ -336,59 +336,93 @@ export async function updateResidence(residenceId: string, lastName: string) {
 }
 
 export async function claimResidence(residenceId: string) {
-  const supabase = await createClient()
-  
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  try {
+    const supabase = await createClient()
+    
+    // Get authenticated user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Unauthorized" }
 
-  // Check if user is whitelisted for this residence
-  const { data: allowedEmail } = await supabase
-    .from("allowed_emails")
-    .select("*")
-    .eq("residence_id", residenceId)
-    .eq("email", user.email!)
-    .single()
+    // Check if user is whitelisted for this residence
+    const { data: allowedEmail } = await supabase
+      .from("allowed_emails")
+      .select("*")
+      .eq("residence_id", residenceId)
+      .eq("email", user.email!)
+      .single()
 
-  if (!allowedEmail) {
-    throw new Error("You are not authorized to claim this residence. Please check if your email is whitelisted.")
+    if (!allowedEmail) {
+      return { success: false, error: "You are not authorized to claim this residence. Please check if your email is whitelisted." }
+    }
+
+    // Use service client to bypass RLS
+    const serviceClient = await createServiceClient()
+    
+    // Ensure user exists in users table (create if missing)
+    const { data: existingUser } = await serviceClient
+      .from("users")
+      .select("id")
+      .eq("id", user.id)
+    
+    if (!existingUser || existingUser.length === 0) {
+      // Create user record if it doesn't exist
+      const { error: createError } = await serviceClient
+        .from("users")
+        .insert({
+          id: user.id,
+          email: user.email,
+          phone_number: "",
+          is_admin: false,
+        })
+      
+      if (createError) {
+        console.error("[v0] Failed to create user:", createError)
+        return { success: false, error: "Failed to create user profile" }
+      }
+    }
+    
+    // Check if user already has a residence
+    const { data: userResidence } = await serviceClient
+      .from("users")
+      .select("residence_id")
+      .eq("id", user.id)
+    
+    const userRecord = Array.isArray(userResidence) ? userResidence[0] : userResidence
+    if (userRecord?.residence_id) {
+      return { success: false, error: "You have already claimed a residence. You can only claim one residence per account." }
+    }
+
+    // Update user's residence
+    const { error: userError } = await serviceClient
+      .from("users")
+      .update({ residence_id: residenceId })
+      .eq("id", user.id)
+
+    if (userError) return { success: false, error: userError.message || "Failed to claim residence" }
+
+    // Log the claim action
+    const { error: auditError } = await serviceClient
+      .from("audit_logs")
+      .insert({
+        admin_id: user.id,
+        action: "create",
+        resource_type: "residence_claim",
+        resource_id: residenceId,
+        old_values: { residence_id: null },
+        new_values: { residence_id: residenceId },
+        description: `User claimed residence: ${residenceId}`
+      })
+    
+    if (auditError) {
+      console.error("[v0] Audit log error:", auditError)
+      // Don't fail the claim if audit logging fails
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    console.error("[v0] claimResidence error:", err)
+    return { success: false, error: err.message || "Failed to claim residence" }
   }
-
-  // Use service client to bypass RLS
-  const serviceClient = await createServiceClient()
-  
-  // Check if user already has a residence
-  const { data: existingUser } = await serviceClient
-    .from("users")
-    .select("residence_id")
-    .eq("id", user.id)
-    .single()
-
-  if (existingUser?.residence_id) {
-    throw new Error("You have already claimed a residence. You can only claim one residence per account.")
-  }
-
-  // Update user's residence - now multiple users can have the same residence_id
-  const { error: userError } = await serviceClient
-    .from("users")
-    .update({ residence_id: residenceId })
-    .eq("id", user.id)
-
-  if (userError) throw new Error(userError.message || "Failed to claim residence")
-
-  // Log the claim action
-  await logAuditAction({
-    admin_id: user.id,
-    action: "create",
-    resource_type: "residence_claim",
-    resource_id: residenceId,
-    old_values: { residence_id: null },
-    new_values: { residence_id: residenceId },
-    description: `User claimed residence: ${residenceId}`
-  })
-
-  revalidatePath("/profile")
-  revalidatePath("/directory")
 }
 
 export async function updateUserPhone(phoneNumber: string) {

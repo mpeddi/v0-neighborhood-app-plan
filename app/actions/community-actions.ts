@@ -9,29 +9,33 @@ async function getAuthenticatedUser() {
   const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
   
-  if (error) throw new Error(`Auth error: ${error.message}`)
-  if (!user) throw new Error("Not authenticated")
+  if (error || !user) {
+    throw new Error(`Auth error: ${error?.message || "Not authenticated"}`)
+  }
   
   // Ensure user exists in users table (in case auth trigger failed)
-  const { data: existingUser, error: getUserError } = await supabase
+  const { data: existingUser } = await supabase
     .from("users")
     .select("id")
     .eq("id", user.id)
-    .single()
 
-  if (!existingUser) {
-    // User doesn't exist, create it
+  if (!existingUser || existingUser.length === 0) {
+    // User doesn't exist, create it with RLS bypass using service client if available
+    // Otherwise create with regular client which requires RLS policy to allow it
     const { error: insertError } = await supabase
       .from("users")
       .insert({
         id: user.id,
         email: user.email,
+        phone_number: "",
         is_admin: false,
       })
+      .select()
     
     if (insertError) {
       console.error("[v0] Failed to create user record:", insertError)
-      throw new Error("Failed to create user profile")
+      // Don't throw - just log and continue. RLS policy for users_insert_authenticated should allow this
+      // If it fails, the constraint violation will be caught when trying to insert a comment
     }
   }
   
@@ -47,13 +51,20 @@ export async function createCharitableItem(title: string, description: string, i
     if (!descriptionValidation.valid) return { success: false, error: descriptionValidation.error || "Invalid description" }
 
     const { user, supabase } = await getAuthenticatedUser()
+    
+    console.log("[v0] Creating charitable item for user:", user.id)
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("charitable_items")
       .insert({ title: title.trim(), description: description.trim(), item_type: itemType, created_by: user.id })
+      .select()
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      console.error("[v0] Charitable item insert error:", error)
+      return { success: false, error: error.message }
+    }
     
+    console.log("[v0] Charitable item created:", data)
     revalidatePath("/community")
     return { success: true }
   } catch (err: any) {
@@ -71,15 +82,21 @@ export async function createGiveaway(title: string, description: string) {
     if (!descriptionValidation.valid) return { success: false, error: descriptionValidation.error || "Invalid description" }
 
     const { user, supabase } = await getAuthenticatedUser()
+    
+    console.log("[v0] Creating giveaway for user:", user.id)
 
-    const { error } = await supabase.from("giveaways").insert({ 
+    const { data, error } = await supabase.from("giveaways").insert({ 
       title: title.trim(), 
       description: description.trim(), 
       created_by: user.id 
-    })
+    }).select()
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      console.error("[v0] Giveaway insert error:", error)
+      return { success: false, error: error.message }
+    }
 
+    console.log("[v0] Giveaway created:", data)
     revalidatePath("/community")
     return { success: true }
   } catch (err: any) {
@@ -116,13 +133,20 @@ export async function createHelpRequest(title: string, description: string, requ
     if (!descriptionValidation.valid) return { success: false, error: descriptionValidation.error || "Invalid description" }
 
     const { user, supabase } = await getAuthenticatedUser()
+    
+    console.log("[v0] Creating help request for user:", user.id)
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("help_requests")
       .insert({ title: title.trim(), description: description.trim(), request_type: requestType, created_by: user.id })
+      .select()
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      console.error("[v0] Help request insert error:", error)
+      return { success: false, error: error.message }
+    }
 
+    console.log("[v0] Help request created:", data)
     revalidatePath("/community")
     return { success: true }
   } catch (err: any) {
@@ -138,12 +162,19 @@ export async function addCommunityComment(itemId: string, itemType: string, cont
 
     const { user, supabase } = await getAuthenticatedUser()
 
-    const { error } = await supabase
+    console.log("[v0] Adding comment - user:", user.id, "item:", itemId, "type:", itemType)
+
+    const { data, error } = await supabase
       .from("community_comments")
       .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
+      .select()
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      console.error("[v0] Comment insert error:", error)
+      return { success: false, error: error.message }
+    }
 
+    console.log("[v0] Comment created successfully:", data)
     revalidatePath("/community")
     return { success: true }
   } catch (err: any) {

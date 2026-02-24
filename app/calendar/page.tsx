@@ -19,8 +19,9 @@ async function CalendarContent() {
         .from("users")
         .select("*, residences(*)")
         .eq("id", user.id)
-        .single()
-      userProfile = profile
+      
+      // Get first profile if it exists, otherwise null
+      userProfile = Array.isArray(profile) ? profile[0] : profile
     }
   } catch (err) {
     // Allow preview mode without auth
