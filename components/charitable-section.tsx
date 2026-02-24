@@ -77,7 +77,7 @@ export function CharitableSection({ items, onRefresh }: CharitableSectionProps) 
                 <p className="text-slate-700">{item.description}</p>
 
                 <div className="pt-2 flex gap-2">
-                  <CommunityCommentDialog itemId={item.id} itemType="charitable_item" label="Comment" />
+                  <CommunityCommentDialog itemId={item.id} itemType="charitable" label="Comment" />
                 </div>
 
                 {item.community_comments && item.community_comments.length > 0 && (
