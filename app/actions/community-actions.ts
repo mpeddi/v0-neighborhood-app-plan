@@ -19,7 +19,7 @@ async function getAuthenticatedUser() {
     .eq("id", user.id)
     .single()
 
-  if (!existingUser && !getUserError) {
+  if (!existingUser) {
     // User doesn't exist, create it
     const { error: insertError } = await supabase
       .from("users")
