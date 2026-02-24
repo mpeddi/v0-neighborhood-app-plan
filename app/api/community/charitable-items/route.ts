@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const { data: charitableItems, error } = await supabase
       .from("charitable_items")
-      .select("*,users:created_by(id,residences(last_name))")
+      .select("*,users:created_by(id,residences(last_name)),community_comments(*,users(id,residences(last_name)))")
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -33,6 +33,9 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("[v0] Charitable items fetched:", charitableItems?.length || 0, "items")
+    if (charitableItems && charitableItems.length > 0) {
+      console.log("[v0] First item comments:", charitableItems[0].community_comments?.length || 0)
+    }
     return NextResponse.json(charitableItems || [])
   } catch (error) {
     console.error("[v0] Charitable items exception:", error)

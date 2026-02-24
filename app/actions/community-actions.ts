@@ -162,12 +162,19 @@ export async function addCommunityComment(itemId: string, itemType: string, cont
 
     const { user, supabase } = await getAuthenticatedUser()
 
-    const { error } = await supabase
+    console.log("[v0] Adding comment - user:", user.id, "item:", itemId, "type:", itemType)
+
+    const { data, error } = await supabase
       .from("community_comments")
       .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
+      .select()
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      console.error("[v0] Comment insert error:", error)
+      return { success: false, error: error.message }
+    }
 
+    console.log("[v0] Comment created successfully:", data)
     revalidatePath("/community")
     return { success: true }
   } catch (err: any) {
