@@ -425,9 +425,6 @@ export async function claimResidence(residenceId: string) {
 }
 
 export async function updateUserPhone(phoneNumber: string) {
-}
-
-export async function updateUserPhone(phoneNumber: string) {
   const supabase = await createClient()
   
   // Get authenticated user
