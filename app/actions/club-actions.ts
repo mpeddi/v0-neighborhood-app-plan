@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import { validateClubName, validateDescription } from "@/lib/validation"
+import { validateClubName, validateDescription, validateEventTitle } from "@/lib/validation"
 import { logAuditAction } from "@/lib/audit-logger"
 
 export async function createClub(name: string, description: string) {
