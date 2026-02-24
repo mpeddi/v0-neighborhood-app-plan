@@ -33,9 +33,9 @@ async function AdminContent() {
     .select("*", { count: "exact", head: true })
 
   const { count: claimedResidences } = await supabase
-    .from("residences")
-    .select("*", { count: "exact", head: true })
-    .eq("is_claimed", true)
+    .from("users")
+    .select("residence_id", { count: "exact", head: true })
+    .not("residence_id", "is", null)
 
   const { count: totalUsers } = await supabase
     .from("users")
