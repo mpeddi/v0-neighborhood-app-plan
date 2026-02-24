@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const { data: helpRequests, error } = await supabase
       .from("help_requests")
-      .select("*,users:created_by(id,residences(last_name)),community_comments(*,users(id,residences(last_name)))")
+      .select("*,users:created_by(id,residences(last_name))")
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -32,10 +32,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log("[v0] Help requests fetched:", helpRequests?.length || 0, "items")
+    // Fetch comments separately since there's no formal FK relationship
     if (helpRequests && helpRequests.length > 0) {
-      console.log("[v0] First item comments:", helpRequests[0].community_comments?.length || 0)
+      const requestIds = helpRequests.map((r: any) => r.id)
+      const { data: comments } = await supabase
+        .from("community_comments")
+        .select("*,users(id,residences(last_name))")
+        .eq("item_type", "help_request")
+        .in("item_id", requestIds)
+
+      // Attach comments to items
+      const itemsWithComments = helpRequests.map((item: any) => ({
+        ...item,
+        community_comments: comments?.filter((c: any) => c.item_id === item.id) || [],
+      }))
+
+      console.log("[v0] Help requests fetched:", itemsWithComments.length, "items with", comments?.length || 0, "comments")
+      return NextResponse.json(itemsWithComments)
     }
+
+    console.log("[v0] Help requests fetched: 0 items")
     return NextResponse.json(helpRequests || [])
   } catch (error) {
     console.error("[v0] Help requests exception:", error)

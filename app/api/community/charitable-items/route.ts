@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const { data: charitableItems, error } = await supabase
       .from("charitable_items")
-      .select("*,users:created_by(id,residences(last_name)),community_comments(*,users(id,residences(last_name)))")
+      .select("*,users:created_by(id,residences(last_name))")
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -32,10 +32,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log("[v0] Charitable items fetched:", charitableItems?.length || 0, "items")
+    // Fetch comments separately since there's no formal FK relationship
     if (charitableItems && charitableItems.length > 0) {
-      console.log("[v0] First item comments:", charitableItems[0].community_comments?.length || 0)
+      const itemIds = charitableItems.map((i: any) => i.id)
+      const { data: comments } = await supabase
+        .from("community_comments")
+        .select("*,users(id,residences(last_name))")
+        .eq("item_type", "charitable")
+        .in("item_id", itemIds)
+
+      // Attach comments to items
+      const itemsWithComments = charitableItems.map((item: any) => ({
+        ...item,
+        community_comments: comments?.filter((c: any) => c.item_id === item.id) || [],
+      }))
+
+      console.log("[v0] Charitable items fetched:", itemsWithComments.length, "items with", comments?.length || 0, "comments")
+      return NextResponse.json(itemsWithComments)
     }
+
+    console.log("[v0] Charitable items fetched: 0 items")
     return NextResponse.json(charitableItems || [])
   } catch (error) {
     console.error("[v0] Charitable items exception:", error)
