@@ -30,9 +30,13 @@ export function ProfileSettings({ user, userProfile, residences }: ProfileSettin
     setError("")
     setSuccess("")
     try {
-      await claimResidence(selectedResidence)
-      setSuccess("Residence claimed successfully!")
-      setSelectedResidence("")
+      const result = await claimResidence(selectedResidence, {})
+      if (!result.success) {
+        setError(result.error || "Failed to claim residence")
+      } else {
+        setSuccess("Residence claimed successfully!")
+        setSelectedResidence("")
+      }
     } catch (err: any) {
       setError(err.message || "Failed to claim residence")
     } finally {
