@@ -31,9 +31,13 @@ export function CommunityCommentDialog({ itemId, itemType, label }: CommunityCom
     setError(null)
 
     try {
-      await addCommunityComment(itemId, itemType, content)
-      setContent("")
-      setOpen(false)
+      const result = await addCommunityComment(itemId, itemType, content)
+      if (!result.success) {
+        setError(result.error || "Failed to post response")
+      } else {
+        setContent("")
+        setOpen(false)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to post response")
     } finally {
