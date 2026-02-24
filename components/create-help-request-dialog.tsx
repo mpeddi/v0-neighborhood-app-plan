@@ -3,31 +3,42 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createHelpRequest } from "@/app/actions/community-actions"
 
-export function CreateHelpRequestDialog() {
+interface CreateHelpRequestDialogProps {
+  onSuccess?: () => void
+}
+
+export function CreateHelpRequestDialog({ onSuccess }: CreateHelpRequestDialogProps) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [requestType, setRequestType] = useState("advice")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError(null)
     try {
-      await createHelpRequest(title, description, requestType)
+      const result = await createHelpRequest(title, description, requestType)
+      if (!result.success) {
+        setError(result.error || "Failed to create help request")
+        return
+      }
       setTitle("")
       setDescription("")
       setRequestType("advice")
       setOpen(false)
-    } catch (error) {
-      console.error("Failed to create help request:", error)
+      onSuccess?.()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create help request")
     } finally {
       setIsSubmitting(false)
     }
@@ -41,8 +52,10 @@ export function CreateHelpRequestDialog() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create Help Request</DialogTitle>
+          <DialogDescription>Ask your neighbors for help or advice</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <div className="text-red-600 text-sm">{error}</div>}
           <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
           <Textarea
             placeholder="Description"

@@ -12,47 +12,47 @@ function CommunityContent() {
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchCommunityData() {
-      try {
-        setLoading(true)
-        setError(null)
+  const fetchCommunityData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
 
-        // Get current user
-        const authRes = await fetch("/api/auth/user")
-        if (authRes.ok) {
-          const userData = await authRes.json()
-          setUserId(userData.id || null)
-        }
-
-        // Fetch all community data in parallel
-        const [charitableRes, giveawaysRes, helpRes] = await Promise.all([
-          fetch("/api/community/charitable-items"),
-          fetch("/api/community/giveaways"),
-          fetch("/api/community/help-requests"),
-        ])
-
-        console.log("[v0] Response statuses:", charitableRes.status, giveawaysRes.status, helpRes.status)
-
-        const [charitable, giveawaysData, helpData] = await Promise.all([
-          charitableRes.json(),
-          giveawaysRes.json(),
-          helpRes.json(),
-        ])
-
-        console.log("[v0] Community data:", { charitable, giveawaysData, helpData })
-
-        setCharitableItems(Array.isArray(charitable) ? charitable : [])
-        setGiveaways(Array.isArray(giveawaysData) ? giveawaysData : [])
-        setHelpRequests(Array.isArray(helpData) ? helpData : [])
-      } catch (err) {
-        console.error("[v0] Error fetching community data:", err)
-        setError("Failed to load community board")
-      } finally {
-        setLoading(false)
+      // Get current user
+      const authRes = await fetch("/api/auth/user")
+      if (authRes.ok) {
+        const userData = await authRes.json()
+        setUserId(userData.id || null)
       }
-    }
 
+      // Fetch all community data in parallel
+      const [charitableRes, giveawaysRes, helpRes] = await Promise.all([
+        fetch("/api/community/charitable-items"),
+        fetch("/api/community/giveaways"),
+        fetch("/api/community/help-requests"),
+      ])
+
+      console.log("[v0] Response statuses:", charitableRes.status, giveawaysRes.status, helpRes.status)
+
+      const [charitable, giveawaysData, helpData] = await Promise.all([
+        charitableRes.json(),
+        giveawaysRes.json(),
+        helpRes.json(),
+      ])
+
+      console.log("[v0] Community data:", { charitable, giveawaysData, helpData })
+
+      setCharitableItems(Array.isArray(charitable) ? charitable : [])
+      setGiveaways(Array.isArray(giveawaysData) ? giveawaysData : [])
+      setHelpRequests(Array.isArray(helpData) ? helpData : [])
+    } catch (err) {
+      console.error("[v0] Error fetching community data:", err)
+      setError("Failed to load community board")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchCommunityData()
   }, [])
 
@@ -70,6 +70,7 @@ function CommunityContent() {
       giveaways={giveaways}
       helpRequests={helpRequests}
       userId={userId}
+      onRefresh={fetchCommunityData}
     />
   )
 }

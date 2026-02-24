@@ -12,6 +12,29 @@ async function getAuthenticatedUser() {
   if (error) throw new Error(`Auth error: ${error.message}`)
   if (!user) throw new Error("Not authenticated")
   
+  // Ensure user exists in users table (in case auth trigger failed)
+  const { data: existingUser, error: getUserError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("id", user.id)
+    .single()
+
+  if (!existingUser && !getUserError) {
+    // User doesn't exist, create it
+    const { error: insertError } = await supabase
+      .from("users")
+      .insert({
+        id: user.id,
+        email: user.email,
+        is_admin: false,
+      })
+    
+    if (insertError) {
+      console.error("[v0] Failed to create user record:", insertError)
+      throw new Error("Failed to create user profile")
+    }
+  }
+  
   return { user, supabase }
 }
 

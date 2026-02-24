@@ -3,31 +3,43 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createCharitableItem } from "@/app/actions/community-actions"
 
-export function CreateCharitableDialog() {
+interface CreateCharitableDialogProps {
+  onSuccess?: () => void
+}
+
+export function CreateCharitableDialog({ onSuccess }: CreateCharitableDialogProps) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [itemType, setItemType] = useState("drive")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError(null)
     try {
-      await createCharitableItem(title, description, itemType)
+      const result = await createCharitableItem(title, description, itemType)
+      if (!result.success) {
+        setError(result.error || "Failed to create item")
+        return
+      }
       setTitle("")
       setDescription("")
       setItemType("drive")
       setOpen(false)
-    } catch (error) {
-      console.error("Failed to create charitable item:", error)
+      // Trigger refetch in parent
+      onSuccess?.()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create charitable item")
     } finally {
       setIsSubmitting(false)
     }
@@ -41,8 +53,10 @@ export function CreateCharitableDialog() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create Charitable Item</DialogTitle>
+          <DialogDescription>Add a new item to the charitable board</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <div className="text-red-600 text-sm">{error}</div>}
           <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
           <Textarea
             placeholder="Description"

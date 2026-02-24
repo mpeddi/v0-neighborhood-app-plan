@@ -11,9 +11,10 @@ import { createClient } from "@/lib/supabase/client"
 interface CharitableSectionProps {
   items: any[]
   userId: string | null
+  onRefresh?: () => void
 }
 
-export function CharitableSection({ items }: CharitableSectionProps) {
+export function CharitableSection({ items, onRefresh }: CharitableSectionProps) {
   const [itemsWithUsers, setItemsWithUsers] = useState<any[]>([])
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export function CharitableSection({ items }: CharitableSectionProps) {
 
   return (
     <div className="space-y-6">
-      <CreateCharitableDialog />
+      <CreateCharitableDialog onSuccess={onRefresh} />
 
       <div className="space-y-4">
         {displayItems.length > 0 ? (
