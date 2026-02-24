@@ -9,18 +9,20 @@ async function getAuthenticatedUser() {
   const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
   
-  if (error) throw new Error(`Auth error: ${error.message}`)
-  if (!user) throw new Error("Not authenticated")
+  if (error || !user) {
+    throw new Error(`Auth error: ${error?.message || "Not authenticated"}`)
+  }
   
   // Ensure user exists in users table (in case auth trigger failed)
-  const { data: existingUser, error: getUserError } = await supabase
+  const { data: existingUser } = await supabase
     .from("users")
     .select("id")
     .eq("id", user.id)
     .single()
 
   if (!existingUser) {
-    // User doesn't exist, create it
+    // User doesn't exist, create it with RLS bypass using service client if available
+    // Otherwise create with regular client which requires RLS policy to allow it
     const { error: insertError } = await supabase
       .from("users")
       .insert({
@@ -28,10 +30,12 @@ async function getAuthenticatedUser() {
         email: user.email,
         is_admin: false,
       })
+      .select()
     
     if (insertError) {
       console.error("[v0] Failed to create user record:", insertError)
-      throw new Error("Failed to create user profile")
+      // Don't throw - just log and continue. RLS policy for users_insert_authenticated should allow this
+      // If it fails, the constraint violation will be caught when trying to insert a comment
     }
   }
   

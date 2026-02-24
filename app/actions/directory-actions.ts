@@ -15,14 +15,19 @@ export async function claimResidence(residenceId: string, details: { email?: str
       return { success: false, error: "Unauthorized - please log in again" }
     }
 
-    // Check if residence is already claimed
-    const { data: residence } = await supabase.from("residences").select("is_claimed").eq("id", residenceId).single()
+    // Check if residence is already claimed by another user
+    const { data: claimedByOther } = await supabase
+      .from("users")
+      .select("id")
+      .eq("residence_id", residenceId)
+      .neq("id", user.id)
+      .single()
 
-    if (residence?.is_claimed) {
-      return { success: false, error: "This residence has already been claimed" }
+    if (claimedByOther) {
+      return { success: false, error: "This residence has already been claimed by another user" }
     }
 
-    // Update residence with additional details and claim it
+    // Update residence with additional details
     const additionalDetails: any = {}
     if (details.email) additionalDetails.email = details.email
     if (details.notes) additionalDetails.notes = details.notes
@@ -30,7 +35,6 @@ export async function claimResidence(residenceId: string, details: { email?: str
     const { error: updateError } = await supabase
       .from("residences")
       .update({
-        is_claimed: true,
         additional_details: additionalDetails,
       })
       .eq("id", residenceId)
@@ -40,7 +44,10 @@ export async function claimResidence(residenceId: string, details: { email?: str
     }
 
     // Link user to residence
-    const { error: userError } = await supabase.from("users").update({ residence_id: residenceId }).eq("id", user.id)
+    const { error: userError } = await supabase
+      .from("users")
+      .update({ residence_id: residenceId })
+      .eq("id", user.id)
 
     if (userError) {
       return { success: false, error: userError.message }
