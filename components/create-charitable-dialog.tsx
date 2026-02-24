@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -41,6 +41,7 @@ export function CreateCharitableDialog() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create Charitable Item</DialogTitle>
+          <DialogDescription>Add a new item to the charitable board</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
