@@ -18,9 +18,8 @@ async function getAuthenticatedUser() {
     .from("users")
     .select("id")
     .eq("id", user.id)
-    .single()
 
-  if (!existingUser) {
+  if (!existingUser || existingUser.length === 0) {
     // User doesn't exist, create it with RLS bypass using service client if available
     // Otherwise create with regular client which requires RLS policy to allow it
     const { error: insertError } = await supabase
@@ -28,6 +27,7 @@ async function getAuthenticatedUser() {
       .insert({
         id: user.id,
         email: user.email,
+        phone_number: "",
         is_admin: false,
       })
       .select()

@@ -371,6 +371,7 @@ export async function claimResidence(residenceId: string) {
         .insert({
           id: user.id,
           email: user.email,
+          phone_number: "",
           is_admin: false,
         })
       
