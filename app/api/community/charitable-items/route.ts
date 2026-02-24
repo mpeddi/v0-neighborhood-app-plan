@@ -29,9 +29,10 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("[v0] Charitable items error:", error)
-      return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 })
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log("[v0] Charitable items fetched:", charitableItems?.length || 0, "items")
     return NextResponse.json(charitableItems || [])
   } catch (error) {
     console.error("[v0] Charitable items exception:", error)

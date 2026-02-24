@@ -29,9 +29,10 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("[v0] Giveaways error:", error)
-      return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 })
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log("[v0] Giveaways fetched:", giveaways?.length || 0, "items")
     return NextResponse.json(giveaways || [])
   } catch (error) {
     console.error("[v0] Giveaways exception:", error)
