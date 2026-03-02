@@ -22,6 +22,7 @@ export function OnboardingContent({ user, userProfile }: OnboardingContentProps)
   const [phoneError, setPhoneError] = useState('')
   const [phoneSuccess, setPhoneSuccess] = useState(false)
   const [isSkipping, setIsSkipping] = useState(false)
+  const [generalError, setGeneralError] = useState('')
 
   useEffect(() => {
     if (userProfile?.phone_number) {
@@ -37,13 +38,17 @@ export function OnboardingContent({ user, userProfile }: OnboardingContentProps)
 
     setIsAddingPhone(true)
     setPhoneError('')
+    setGeneralError('')
     setPhoneSuccess(false)
 
     try {
+      console.log("[v0] Updating phone number:", phoneNumber)
       await updateUserPhone(phoneNumber)
+      console.log("[v0] Phone updated successfully")
       setPhoneSuccess(true)
       setTimeout(() => proceedToApp(), 1500)
     } catch (err: any) {
+      console.error("[v0] Phone update error:", err)
       setPhoneError(err.message || 'Failed to save phone number')
     } finally {
       setIsAddingPhone(false)
@@ -51,8 +56,15 @@ export function OnboardingContent({ user, userProfile }: OnboardingContentProps)
   }
 
   const proceedToApp = async () => {
-    setIsSkipping(true)
-    router.push('/calendar')
+    try {
+      setIsSkipping(true)
+      console.log("[v0] Redirecting to calendar")
+      router.push('/calendar')
+    } catch (err) {
+      console.error("[v0] Redirect error:", err)
+      setGeneralError('Failed to proceed. Please try again.')
+      setIsSkipping(false)
+    }
   }
 
   const features = [
@@ -78,9 +90,28 @@ export function OnboardingContent({ user, userProfile }: OnboardingContentProps)
     }
   ]
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+        <Card className="shadow-lg border-red-200 w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <p className="text-red-700 mb-4">Unable to load onboarding. Please refresh the page.</p>
+            <Button onClick={() => window.location.reload()}>Refresh</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex items-center justify-center">
       <div className="w-full max-w-2xl space-y-6">
+        {generalError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {generalError}
+          </div>
+        )}
+
         {/* Welcome Card */}
         <Card className="shadow-lg border-0">
           <CardHeader className="pb-4">
