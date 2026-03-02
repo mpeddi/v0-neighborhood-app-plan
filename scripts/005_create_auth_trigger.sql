@@ -1,17 +1,27 @@
 -- Create function to auto-create user profile when auth user is created
+-- And automatically assign residence from whitelist
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE PLPGSQL
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  whitelisted_residence_id UUID;
 BEGIN
-  INSERT INTO public.users (id, phone_number, email, is_admin)
+  -- Look up the residence from allowed_emails
+  SELECT residence_id INTO whitelisted_residence_id
+  FROM public.allowed_emails
+  WHERE LOWER(email) = LOWER(new.email)
+  LIMIT 1;
+  
+  INSERT INTO public.users (id, phone_number, email, is_admin, residence_id)
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data ->> 'phone_number', ''),
     new.email,
-    COALESCE((new.raw_user_meta_data ->> 'is_admin')::BOOLEAN, false)
+    COALESCE((new.raw_user_meta_data ->> 'is_admin')::BOOLEAN, false),
+    whitelisted_residence_id
   )
   ON CONFLICT (id) DO NOTHING;
   
