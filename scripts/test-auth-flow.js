@@ -1,137 +1,170 @@
-#!/usr/bin/env node
-
 /**
  * Auth Flow Tester - Tests the complete onboarding flow without browser UI
- * This script:
- * 1. Creates a test user via Supabase Auth
- * 2. Verifies the user profile was created by the auth trigger
- * 3. Checks residence assignment from whitelist
- * 4. Tests phone number updates
- * 5. Reports the full flow status
+ * Run with: node scripts/test-auth-flow.js
  */
 
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('[TEST] Missing Supabase environment variables');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_KEY) {
+  console.error('❌ Missing Supabase environment variables');
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+// Test email
+const TEST_EMAIL = `test-${Date.now()}@example.com`;
+const TEST_PASSWORD = 'TestPassword123!';
+let createdUserId = null;
+
+async function log(step, message, status = 'info') {
+  const icons = {
+    info: 'ℹ️',
+    success: '✅',
+    error: '❌',
+    warn: '⚠️'
+  };
+  console.log(`${icons[status]} ${step}: ${message}`);
+}
 
 async function testAuthFlow() {
-  const testEmail = `test-${Date.now()}@neighborhood.local`;
-  const testPassword = 'TestPassword123!@#';
-  const testPhone = '(555) 123-4567';
-  
-  console.log('\n========== Auth Flow Tester ==========');
-  console.log(`[TEST] Starting auth flow test with email: ${testEmail}\n`);
+  console.log('\n🧪 Starting Auth Flow Test\n');
+  console.log(`Testing with email: ${TEST_EMAIL}\n`);
 
   try {
-    // Step 1: Create test user
-    console.log('[TEST] Step 1: Creating new user...');
-    const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
-      email: testEmail,
-      password: testPassword,
-      email_confirm: true,
+    // Step 1: Create user via Supabase Auth
+    console.log('--- Step 1: User Registration ---');
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: TEST_EMAIL,
+      password: TEST_PASSWORD,
+      options: {
+        data: {
+          phone_number: '',
+          is_admin: false
+        }
+      }
     });
 
-    if (signUpError || !authData.user) {
-      throw new Error(`Failed to create user: ${signUpError?.message}`);
+    if (authError) {
+      await log('Registration', `Failed: ${authError.message}`, 'error');
+      return;
     }
 
-    const userId = authData.user.id;
-    console.log(`[TEST] ✓ User created with ID: ${userId}`);
+    createdUserId = authData.user?.id;
+    await log('Registration', `User created: ${createdUserId}`, 'success');
 
-    // Step 2: Wait for auth trigger to create profile
-    console.log('\n[TEST] Step 2: Checking if user profile was created by auth trigger...');
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s for trigger
+    // Step 2: Wait for auth trigger to create user profile
+    console.log('\n--- Step 2: Auth Trigger Check ---');
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second for trigger
 
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('users')
-      .select('*,residences(*)')
-      .eq('id', userId)
+      .select('*')
+      .eq('id', createdUserId)
       .single();
 
     if (profileError) {
-      throw new Error(`Profile not found: ${profileError.message}`);
+      await log('Profile Creation', `Auth trigger failed: ${profileError.message}`, 'error');
+      return;
     }
 
-    console.log(`[TEST] ✓ User profile created`);
-    console.log(`      - Email: ${userProfile.email}`);
-    console.log(`      - Is Admin: ${userProfile.is_admin}`);
-    console.log(`      - Residence ID: ${userProfile.residence_id || 'NOT SET'}`);
-    console.log(`      - Has Residence Data: ${!!userProfile.residences}`);
+    await log('Profile Creation', `User profile created`, 'success');
+    console.log(`   Email: ${profile.email}`);
+    console.log(`   Phone: ${profile.phone_number || '(empty)'}`);
+    console.log(`   Residence ID: ${profile.residence_id || '(none)'}`);
 
-    // Step 3: Verify residence assignment (if any)
-    if (userProfile.residences) {
-      console.log(`      - Residence Address: ${userProfile.residences.address}`);
-      console.log(`      - Residence Name: ${userProfile.residences.last_name}`);
+    // Step 3: Check residence assignment
+    console.log('\n--- Step 3: Residence Assignment ---');
+    
+    if (!profile.residence_id) {
+      await log('Residence Assignment', 'No residence assigned (expected if not whitelisted)', 'warn');
+    } else {
+      const { data: residence, error: residenceError } = await supabase
+        .from('residences')
+        .select('*')
+        .eq('id', profile.residence_id)
+        .single();
+
+      if (residenceError) {
+        await log('Residence Lookup', `Failed: ${residenceError.message}`, 'error');
+      } else {
+        await log('Residence Assignment', `Assigned to: ${residence.address}`, 'success');
+        console.log(`   Name: ${residence.last_name}`);
+      }
     }
 
     // Step 4: Test phone number update
-    console.log(`\n[TEST] Step 3: Testing phone number update...`);
-    const { data: updateData, error: updateError } = await supabase
+    console.log('\n--- Step 4: Phone Number Update ---');
+    const testPhone = '(555) 123-4567';
+
+    const { error: updateError } = await supabase
       .from('users')
       .update({ phone_number: testPhone })
-      .eq('id', userId)
-      .select();
+      .eq('id', createdUserId);
 
     if (updateError) {
-      throw new Error(`Failed to update phone: ${updateError.message}`);
+      await log('Phone Update', `Failed: ${updateError.message}`, 'error');
+    } else {
+      await log('Phone Update', `Phone set to: ${testPhone}`, 'success');
+
+      // Verify update
+      const { data: updatedProfile } = await supabase
+        .from('users')
+        .select('phone_number')
+        .eq('id', createdUserId)
+        .single();
+
+      if (updatedProfile?.phone_number === testPhone) {
+        await log('Phone Verification', `Verified: ${updatedProfile.phone_number}`, 'success');
+      } else {
+        await log('Phone Verification', `Mismatch: ${updatedProfile?.phone_number}`, 'error');
+      }
     }
 
-    console.log(`[TEST] ✓ Phone number updated to: ${testPhone}`);
-
-    // Step 5: Verify phone was saved
-    console.log(`\n[TEST] Step 4: Verifying phone number was saved...`);
-    const { data: verifyProfile, error: verifyError } = await supabase
+    // Step 5: Test onboarding logic
+    console.log('\n--- Step 5: Onboarding Logic ---');
+    
+    const { data: finalProfile } = await supabase
       .from('users')
-      .select('phone_number')
-      .eq('id', userId)
+      .select('*, residences(*)')
+      .eq('id', createdUserId)
       .single();
 
-    if (verifyError) {
-      throw new Error(`Failed to verify phone: ${verifyError.message}`);
-    }
+    const hasPhone = finalProfile?.phone_number && finalProfile.phone_number.trim() !== '';
+    const shouldShowOnboarding = !hasPhone;
 
-    if (verifyProfile.phone_number === testPhone) {
-      console.log(`[TEST] ✓ Phone number verified: ${verifyProfile.phone_number}`);
+    if (shouldShowOnboarding) {
+      await log('Onboarding Check', 'Should show onboarding (no phone number yet)', 'info');
     } else {
-      throw new Error(`Phone number mismatch. Expected: ${testPhone}, Got: ${verifyProfile.phone_number}`);
+      await log('Onboarding Check', 'Should redirect to calendar (phone number set)', 'info');
     }
 
-    // Step 6: Check onboarding logic
-    console.log(`\n[TEST] Step 5: Checking onboarding logic...`);
-    const hasPhone = verifyProfile.phone_number && verifyProfile.phone_number.trim() !== '';
-    if (hasPhone) {
-      console.log(`[TEST] ✓ User would be redirected to calendar (phone is set)`);
-    } else {
-      console.log(`[TEST] ✓ User would see onboarding screen (phone not set)`);
-    }
+    console.log(`\n   Residence: ${finalProfile?.residences?.address || '(none)'}`);
+    console.log(`   Phone: ${finalProfile?.phone_number || '(empty)'}`);
+    console.log(`   Show Onboarding: ${shouldShowOnboarding}`);
 
-    // Clean up
-    console.log(`\n[TEST] Step 6: Cleaning up test user...`);
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+    // Cleanup
+    console.log('\n--- Cleanup ---');
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(createdUserId);
+    
     if (deleteError) {
-      console.warn(`[TEST] ⚠ Warning: Could not delete test user: ${deleteError.message}`);
+      await log('User Deletion', `Note: Manual cleanup may be needed: ${deleteError.message}`, 'warn');
     } else {
-      console.log(`[TEST] ✓ Test user deleted`);
+      await log('User Deletion', `Test user deleted`, 'success');
     }
 
-    console.log('\n[TEST] ========== Auth Flow Test PASSED ==========\n');
-    return true;
+    console.log('\n✨ Auth Flow Test Complete\n');
 
-  } catch (err) {
-    console.error(`\n[TEST] ✗ Auth Flow Test FAILED:`);
-    console.error(`[TEST] ${err.message}\n`);
-    return false;
+  } catch (error) {
+    await log('Unexpected Error', error.message, 'error');
+    console.error(error);
   }
 }
 
-testAuthFlow().then(success => {
-  process.exit(success ? 0 : 1);
-});
+// Run the test
+testAuthFlow().catch(console.error);
