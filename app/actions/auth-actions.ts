@@ -443,6 +443,7 @@ export async function updateUserPhone(phoneNumber: string) {
   if (error) throw new Error(error.message || "Failed to update phone number")
 
   revalidatePath("/profile")
+  revalidatePath("/directory")
 }
 
 export async function deleteResidence(residenceId: string) {
