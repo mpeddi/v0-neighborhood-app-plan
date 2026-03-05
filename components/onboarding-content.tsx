@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Users, Home, Heart, CheckCircle2, ArrowRight } from 'lucide-react'
-import { updateUserPhone } from '@/app/actions/auth-actions'
+import { updateUserPhone, completeOnboarding } from '@/app/actions/auth-actions'
 
 interface OnboardingContentProps {
   user: any
@@ -42,13 +42,10 @@ export function OnboardingContent({ user, userProfile }: OnboardingContentProps)
     setPhoneSuccess(false)
 
     try {
-      console.log("[v0] Updating phone number:", phoneNumber)
       await updateUserPhone(phoneNumber)
-      console.log("[v0] Phone updated successfully")
       setPhoneSuccess(true)
       setTimeout(() => proceedToApp(), 1500)
     } catch (err: any) {
-      console.error("[v0] Phone update error:", err)
       setPhoneError(err.message || 'Failed to save phone number')
     } finally {
       setIsAddingPhone(false)
@@ -58,10 +55,9 @@ export function OnboardingContent({ user, userProfile }: OnboardingContentProps)
   const proceedToApp = async () => {
     try {
       setIsSkipping(true)
-      console.log("[v0] Redirecting to calendar")
+      await completeOnboarding()
       router.push('/calendar')
     } catch (err) {
-      console.error("[v0] Redirect error:", err)
       setGeneralError('Failed to proceed. Please try again.')
       setIsSkipping(false)
     }
