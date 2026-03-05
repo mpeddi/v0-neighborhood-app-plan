@@ -5,7 +5,6 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
   const type = searchParams.get("type")
-  const next = searchParams.get("next") ?? "/onboarding"
 
   if (code) {
     const supabase = await createClient()
@@ -20,7 +19,8 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      // Always redirect to onboarding for fresh auth, ignore any 'next' parameter
+      return NextResponse.redirect(`${origin}/onboarding`)
     }
   }
 
