@@ -13,8 +13,11 @@ export default async function OnboardingPage() {
   // Get authenticated user
   const { data: { user } } = await supabase.auth.getUser()
   
+  console.log("[v0] Onboarding page - User:", user?.email)
+  
   // If not authenticated, redirect to login
   if (!user) {
+    console.log("[v0] No user, redirecting to login")
     redirect("/auth/login")
   }
 
@@ -25,11 +28,15 @@ export default async function OnboardingPage() {
     .eq("id", user.id)
     .maybeSingle()
 
+  console.log("[v0] Profile:", profile?.email, "onboarding_completed:", profile?.onboarding_completed)
+
   // If user has completed onboarding, redirect to calendar
   if (profile?.onboarding_completed) {
+    console.log("[v0] Onboarding already completed, redirecting to calendar")
     redirect("/calendar")
   }
 
+  console.log("[v0] Showing onboarding screen")
   return (
     <main className="min-h-screen">
       <OnboardingContent user={user} userProfile={profile} />
