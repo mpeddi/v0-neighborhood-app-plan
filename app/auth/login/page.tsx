@@ -33,8 +33,8 @@ export default function LoginPage() {
         return
       }
 
-      // Sign in successful, redirect to home
-      router.push("/")
+      // Sign in successful - wait for auth to complete via callback
+      await new Promise(resolve => setTimeout(resolve, 1000))
     } catch (err) {
       setError("An error occurred. Please try again.")
       setLoading(false)
@@ -55,8 +55,8 @@ export default function LoginPage() {
         return
       }
 
-      // Sign up successful, redirect to home
-      router.push("/")
+      // Sign up successful - wait for auth redirect via callback
+      await new Promise(resolve => setTimeout(resolve, 1000))
     } catch (err) {
       setError("An error occurred. Please try again.")
       setLoading(false)
@@ -99,8 +99,8 @@ export default function LoginPage() {
       const signInResult = await signInWithPassword(email, password)
       
       if (signInResult.success) {
-        // Sign in successful
-        router.push("/")
+        // Sign in successful - wait for auth redirect via callback
+        await new Promise(resolve => setTimeout(resolve, 1000))
         return
       }
 
@@ -108,8 +108,8 @@ export default function LoginPage() {
       const signUpResult = await signUpWithPassword(email, password)
 
       if (signUpResult.success) {
-        // Sign up successful
-        router.push("/")
+        // Sign up successful - wait for auth redirect via callback
+        await new Promise(resolve => setTimeout(resolve, 1000))
         return
       }
 

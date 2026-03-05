@@ -15,13 +15,14 @@ BEGIN
   WHERE LOWER(email) = LOWER(new.email)
   LIMIT 1;
   
-  INSERT INTO public.users (id, phone_number, email, is_admin, residence_id)
+  INSERT INTO public.users (id, phone_number, email, is_admin, residence_id, onboarding_completed)
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data ->> 'phone_number', ''),
     new.email,
     COALESCE((new.raw_user_meta_data ->> 'is_admin')::BOOLEAN, false),
-    whitelisted_residence_id
+    whitelisted_residence_id,
+    false
   )
   ON CONFLICT (id) DO NOTHING;
   

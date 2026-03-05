@@ -437,13 +437,37 @@ export async function updateUserPhone(phoneNumber: string) {
   
   const { error } = await serviceClient
     .from("users")
-    .update({ phone_number: phoneNumber.trim() })
+    .update({ 
+      phone_number: phoneNumber.trim(),
+      onboarding_completed: true
+    })
     .eq("id", user.id)
 
   if (error) throw new Error(error.message || "Failed to update phone number")
 
   revalidatePath("/profile")
   revalidatePath("/directory")
+  revalidatePath("/onboarding")
+}
+
+export async function completeOnboarding() {
+  const supabase = await createClient()
+  
+  // Get authenticated user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  // Use service client to bypass RLS
+  const serviceClient = await createServiceClient()
+  
+  const { error } = await serviceClient
+    .from("users")
+    .update({ onboarding_completed: true })
+    .eq("id", user.id)
+
+  if (error) throw new Error(error.message || "Failed to complete onboarding")
+
+  revalidatePath("/onboarding")
 }
 
 export async function deleteResidence(residenceId: string) {

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Clock, MapPin, Trash2 } from "lucide-react"
 import { deleteEvent } from "@/app/actions/calendar-actions"
 import { AddEventDialog } from "./add-event-dialog"
+import { WelcomeCard } from "./welcome-card"
 import {
   format,
   parseISO,
@@ -41,6 +42,8 @@ interface CalendarViewProps {
   events: Event[]
   userId: string | null
   isAdmin: boolean
+  userProfile: any
+  onboardingCompleted: boolean
 }
 
 const categoryColors: Record<string, string> = {
@@ -50,9 +53,10 @@ const categoryColors: Record<string, string> = {
   Meeting: "bg-purple-100 text-purple-800",
 }
 
-export function CalendarView({ events, userId, isAdmin }: CalendarViewProps) {
+export function CalendarView({ events, userId, isAdmin, userProfile, onboardingCompleted }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [showWelcome, setShowWelcome] = useState(!onboardingCompleted)
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -73,7 +77,11 @@ export function CalendarView({ events, userId, isAdmin }: CalendarViewProps) {
   }
 
   return (
-    <div className="grid lg:grid-cols-3 gap-6">
+    <>
+      {showWelcome && (
+        <WelcomeCard userProfile={userProfile} onDismiss={() => setShowWelcome(false)} />
+      )}
+      <div className="grid lg:grid-cols-3 gap-6">
       {/* Calendar Grid */}
       <div className="lg:col-span-2">
         <Card>
@@ -216,5 +224,6 @@ export function CalendarView({ events, userId, isAdmin }: CalendarViewProps) {
         </Card>
       </div>
     </div>
+    </>
   )
 }
