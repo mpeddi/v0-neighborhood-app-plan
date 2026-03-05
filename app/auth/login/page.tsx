@@ -33,10 +33,8 @@ export default function LoginPage() {
         return
       }
 
-      // Sign in successful - wait for auth to complete, then redirect via auth callback
-      // The Supabase session will trigger a page refresh/redirect automatically
+      // Sign in successful - wait for auth to complete via callback
       await new Promise(resolve => setTimeout(resolve, 1000))
-      router.push("/onboarding")
     } catch (err) {
       setError("An error occurred. Please try again.")
       setLoading(false)
@@ -57,9 +55,8 @@ export default function LoginPage() {
         return
       }
 
-      // Sign up successful - redirect to onboarding
+      // Sign up successful - wait for auth redirect via callback
       await new Promise(resolve => setTimeout(resolve, 1000))
-      router.push("/onboarding")
     } catch (err) {
       setError("An error occurred. Please try again.")
       setLoading(false)
@@ -102,9 +99,8 @@ export default function LoginPage() {
       const signInResult = await signInWithPassword(email, password)
       
       if (signInResult.success) {
-        // Sign in successful - redirect to onboarding
+        // Sign in successful - wait for auth redirect via callback
         await new Promise(resolve => setTimeout(resolve, 1000))
-        router.push("/onboarding")
         return
       }
 
@@ -112,9 +108,8 @@ export default function LoginPage() {
       const signUpResult = await signUpWithPassword(email, password)
 
       if (signUpResult.success) {
-        // Sign up successful - redirect to onboarding
+        // Sign up successful - wait for auth redirect via callback
         await new Promise(resolve => setTimeout(resolve, 1000))
-        router.push("/onboarding")
         return
       }
 
