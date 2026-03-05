@@ -29,6 +29,7 @@ async function CalendarContent() {
   }
 
   const isAdmin = userProfile?.is_admin ?? false
+  const onboardingCompleted = userProfile?.onboarding_completed ?? true
 
   // Get all calendar events
   const { data: events } = await supabase
@@ -39,7 +40,7 @@ async function CalendarContent() {
     `)
     .order("event_date", { ascending: true })
 
-  return <CalendarView events={events || []} userId={user?.id ?? null} isAdmin={isAdmin} />
+  return <CalendarView events={events || []} userId={user?.id ?? null} isAdmin={isAdmin} userProfile={userProfile} onboardingCompleted={onboardingCompleted} />
 }
 
 export default async function CalendarPage() {
