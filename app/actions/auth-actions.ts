@@ -400,16 +400,6 @@ export async function claimResidence(residenceId: string) {
 
     if (userError) return { success: false, error: userError.message || "Failed to claim residence" }
 
-    const { error: residenceError } = await serviceClient
-      .from("residences")
-      .update({ is_claimed: true })
-      .eq("id", residenceId)
-
-    if (residenceError) {
-      console.error("[v0] Residence claim flag error:", residenceError)
-      return { success: false, error: "Failed to finalize residence claim" }
-    }
-
     // Log the claim action
     const { error: auditError } = await serviceClient
       .from("audit_logs")
