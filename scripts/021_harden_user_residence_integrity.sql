@@ -19,5 +19,4 @@ CREATE POLICY "residences_delete_admin"
     )
   );
 
-REVOKE ALL ON FUNCTION public.sync_residence_claimed() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.sync_residence_claimed() TO postgres;
