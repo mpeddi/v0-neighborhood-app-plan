@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createServiceClient } from "@/lib/supabase/server"
 import { Navigation } from "@/components/navigation"
 import { AdminDashboard } from "@/components/admin-dashboard"
 import { Suspense } from "react"
@@ -27,19 +27,23 @@ async function AdminContent() {
     redirect("/calendar")
   }
 
-  // Get statistics
+  // Statistics must reflect real Supabase accounts, not orphaned profile rows.
+  const serviceClient = await createServiceClient()
+  const { data: authUsers } = await serviceClient.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  })
+
   const { count: totalResidences } = await supabase
     .from("residences")
     .select("*", { count: "exact", head: true })
 
   const { count: claimedResidences } = await supabase
-    .from("users")
-    .select("residence_id", { count: "exact", head: true })
-    .not("residence_id", "is", null)
+    .from("residences")
+    .select("id", { count: "exact", head: true })
+    .eq("is_claimed", true)
 
-  const { count: totalUsers } = await supabase
-    .from("users")
-    .select("*", { count: "exact", head: true })
+  const totalUsers = authUsers?.users.filter((authUser) => Boolean(authUser.email_confirmed_at)).length ?? 0
 
   const { count: totalEvents } = await supabase
     .from("calendar_events")

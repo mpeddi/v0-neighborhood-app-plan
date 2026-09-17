@@ -348,7 +348,7 @@ export async function claimResidence(residenceId: string) {
       .from("allowed_emails")
       .select("*")
       .eq("residence_id", residenceId)
-      .eq("email", user.email!)
+      .eq("email", user.email!.trim().toLowerCase())
       .single()
 
     if (!allowedEmail) {
@@ -395,10 +395,20 @@ export async function claimResidence(residenceId: string) {
     // Update user's residence
     const { error: userError } = await serviceClient
       .from("users")
-      .update({ residence_id: residenceId })
+      .update({ residence_id: residenceId, email: user.email.trim().toLowerCase() })
       .eq("id", user.id)
 
     if (userError) return { success: false, error: userError.message || "Failed to claim residence" }
+
+    const { error: residenceError } = await serviceClient
+      .from("residences")
+      .update({ is_claimed: true })
+      .eq("id", residenceId)
+
+    if (residenceError) {
+      console.error("[v0] Residence claim flag error:", residenceError)
+      return { success: false, error: "Failed to finalize residence claim" }
+    }
 
     // Log the claim action
     const { error: auditError } = await serviceClient
