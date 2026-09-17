@@ -101,6 +101,11 @@ async function AdminContent() {
     .select("*")
     .order("created_at", { ascending: false })
 
+  const { data: allComments } = await supabase
+    .from("community_comments")
+    .select("id, content, moderation_status, item_type, created_at, users(email)")
+    .order("created_at", { ascending: false })
+
   const stats = {
     totalResidences: totalResidences || 0,
     claimedResidences: claimedResidences || 0,
@@ -121,6 +126,7 @@ async function AdminContent() {
       giveaways={allGiveaways || []}
       helpRequests={allHelpRequests || []}
       charitableItems={allCharitableItems || []}
+      comments={allComments || []}
     />
   )
 }
