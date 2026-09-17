@@ -162,19 +162,12 @@ export async function addCommunityComment(itemId: string, itemType: string, cont
 
     const { user, supabase } = await getAuthenticatedUser()
 
-    console.log("[v0] Adding comment - user:", user.id, "item:", itemId, "type:", itemType)
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("community_comments")
       .insert({ item_id: itemId, item_type: itemType, user_id: user.id, content: content.trim() })
-      .select()
 
-    if (error) {
-      console.error("[v0] Comment insert error:", error)
-      return { success: false, error: error.message }
-    }
+    if (error) return { success: false, error: error.message }
 
-    console.log("[v0] Comment created successfully:", data)
     revalidatePath("/community")
     return { success: true }
   } catch (err: any) {
@@ -298,6 +291,25 @@ export async function deleteHelpRequest(helpRequestId: string) {
     console.error("[v0] deleteHelpRequest error:", err)
     return { success: false, error: err.message || "Failed to delete help request" }
   }
+}
+
+export async function moderateCommunityComment(commentId: string, status: "approved" | "rejected") {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: "Authentication required" }
+
+  const { data: profile } = await supabase.from("users").select("is_admin").eq("id", user.id).single()
+  if (!profile?.is_admin) return { success: false, error: "Administrator access required" }
+
+  const { error } = await supabase
+    .from("community_comments")
+    .update({ moderation_status: status })
+    .eq("id", commentId)
+
+  if (error) return { success: false, error: "Unable to update comment moderation status" }
+  revalidatePath("/admin")
+  revalidatePath("/community")
+  return { success: true }
 }
 
 export async function deleteComment(commentId: string) {

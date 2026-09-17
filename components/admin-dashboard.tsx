@@ -13,7 +13,7 @@ import { Users, Home, Calendar, Heart, Gift, HelpCircle, CheckCircle2, Mail, Tra
 import { formatDistanceToNow } from "date-fns"
 import { addAllowedEmail, removeAllowedEmail, bulkAddAllowedEmails, updateResidence } from "@/app/actions/auth-actions"
 import { deleteClub } from "@/app/actions/club-actions"
-import { deleteGiveaway, deleteHelpRequest, deleteCharitableItem } from "@/app/actions/community-actions"
+import { deleteGiveaway, deleteHelpRequest, deleteCharitableItem, moderateCommunityComment } from "@/app/actions/community-actions"
 import ResidenceManager from "./residence-manager" // Declare the ResidenceManager variable before using it
 
 interface AdminDashboardProps {
@@ -33,10 +33,19 @@ interface AdminDashboardProps {
   giveaways: any[]
   helpRequests: any[]
   charitableItems: any[]
+  comments: Array<{
+    id: string
+    content: string
+    moderation_status: "pending" | "approved" | "rejected"
+    item_type: string
+    created_at: string
+    users?: { email?: string } | null
+  }>
 }
 
-export function AdminDashboard({ stats, recentEvents, residences, allowedEmails, clubs, giveaways, helpRequests, charitableItems }: AdminDashboardProps) {
+export function AdminDashboard({ stats, recentEvents, residences, allowedEmails, clubs, giveaways, helpRequests, charitableItems, comments }: AdminDashboardProps) {
   const router = useRouter()
+  const pendingComments = comments.filter((comment) => comment.moderation_status === "pending")
   const claimRate = stats.totalResidences > 0 ? (stats.claimedResidences / stats.totalResidences) * 100 : 0
 
   return (
@@ -154,6 +163,8 @@ export function AdminDashboard({ stats, recentEvents, residences, allowedEmails,
       <HelpRequestManager helpRequests={helpRequests} />
       <CharitableItemManager charitableItems={charitableItems} />
 
+      <CommentReview comments={pendingComments} />
+
       {/* Quick Stats Summary */}
       <Card className="bg-gradient-to-r from-green-50 to-blue-50">
         <CardContent className="pt-6">
@@ -165,6 +176,50 @@ export function AdminDashboard({ stats, recentEvents, residences, allowedEmails,
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function CommentReview({ comments }: { comments: AdminDashboardProps["comments"] }) {
+  const [isPending, startTransition] = React.useTransition()
+
+  const updateStatus = (id: string, status: "approved" | "rejected") => {
+    startTransition(async () => {
+      await moderateCommunityComment(id, status)
+    })
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <div>
+          <CardTitle>Comment review</CardTitle>
+          <CardDescription>New comments remain hidden until approved.</CardDescription>
+        </div>
+        <Badge>{comments.length} pending</Badge>
+      </CardHeader>
+      <CardContent>
+        {comments.length === 0 ? (
+          <p className="text-sm text-slate-500">No comments waiting for review.</p>
+        ) : (
+          <div className="space-y-3">
+            {comments.map((comment) => (
+              <div key={comment.id} className="flex flex-col gap-3 rounded-md border p-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="break-words text-sm">{comment.content}</p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    {comment.users?.email ?? "Unknown user"} · {comment.item_type} · {new Date(comment.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button type="button" disabled={isPending} onClick={() => updateStatus(comment.id, "approved")}>Approve</Button>
+                  <Button type="button" variant="outline" disabled={isPending} onClick={() => updateStatus(comment.id, "rejected")}>Reject</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
