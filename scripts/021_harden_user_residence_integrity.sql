@@ -19,4 +19,3 @@ CREATE POLICY "residences_delete_admin"
     )
   );
 
-GRANT EXECUTE ON FUNCTION public.sync_residence_claimed() TO postgres;
