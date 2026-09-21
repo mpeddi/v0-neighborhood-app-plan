@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [resetSent, setResetSent] = useState(false)
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in")
   const [success, setSuccess] = useState("")
+  const [ownerSignupComplete, setOwnerSignupComplete] = useState(false)
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,8 +60,7 @@ export default function LoginPage() {
         return
       }
 
-      setSuccess(result.message || "Account created. Check your email to confirm your account, then sign in.")
-      setMode("sign-in")
+      setOwnerSignupComplete(true)
       setPassword("")
     } catch (err) {
       setError("An error occurred. Please try again.")
