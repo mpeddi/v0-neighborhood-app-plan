@@ -18,10 +18,14 @@ export default function LoginPage() {
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [resetEmail, setResetEmail] = useState("")
   const [resetSent, setResetSent] = useState(false)
+  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in")
+  const [success, setSuccess] = useState("")
+  const [ownerSignupComplete, setOwnerSignupComplete] = useState(false)
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setSuccess("")
     setLoading(true)
 
     try {
@@ -33,8 +37,8 @@ export default function LoginPage() {
         return
       }
 
-      // Sign in successful - wait for auth to complete via callback
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      router.replace("/calendar")
+      router.refresh()
     } catch (err) {
       setError("An error occurred. Please try again.")
       setLoading(false)
@@ -44,6 +48,7 @@ export default function LoginPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setSuccess("")
     setLoading(true)
 
     try {
@@ -55,10 +60,11 @@ export default function LoginPage() {
         return
       }
 
-      // Sign up successful - wait for auth redirect via callback
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      setOwnerSignupComplete(true)
+      setPassword("")
     } catch (err) {
       setError("An error occurred. Please try again.")
+    } finally {
       setLoading(false)
     }
   }
@@ -83,43 +89,26 @@ export default function LoginPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!email || !password) {
-      setError("Please enter both email and password")
-      return
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    if (mode === "sign-up") return handleSignUp(e)
+    return handleSignIn(e)
+  }
 
-    // Try sign in first, if it fails try sign up (unified flow)
-    setError("")
-    setLoading(true)
-
-    try {
-      const signInResult = await signInWithPassword(email, password)
-      
-      if (signInResult.success) {
-        // Sign in successful - wait for auth redirect via callback
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        return
-      }
-
-      // Sign in failed, try sign up
-      const signUpResult = await signUpWithPassword(email, password)
-
-      if (signUpResult.success) {
-        // Sign up successful - wait for auth redirect via callback
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        return
-      }
-
-      // Both failed - show generic error
-      setError("Invalid email or password")
-    } catch (err) {
-      setError("An error occurred. Please try again.")
-    } finally {
-      setLoading(false)
-    }
+  if (ownerSignupComplete) {
+    return (
+      <div className="flex min-h-svh w-full items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Check your email</CardTitle>
+            <CardDescription>Confirm {email} to continue to the new-owner setup.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-slate-600">After you verify your email, use the sign-in form to enter the neighborhood hub. You&apos;ll then confirm your assigned residence and optionally add a phone number.</p>
+            <Button type="button" onClick={() => setOwnerSignupComplete(false)}>Continue to sign in</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (showResetPassword) {
@@ -230,7 +219,7 @@ export default function LoginPage() {
           <CardHeader>
             <CardTitle className="text-2xl">Welcome Neighbor</CardTitle>
             <CardDescription>
-              Sign in or create an account with your email
+              {mode === "sign-in" ? "Sign in to your neighborhood account" : "Create your new owner account"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -263,9 +252,22 @@ export default function LoginPage() {
                     Minimum 8 characters
                   </p>
                 </div>
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+                {success && <p role="status" className="text-sm text-green-700">{success}</p>}
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Loading..." : "Sign In or Sign Up"}
+                  {loading ? (mode === "sign-in" ? "Signing in..." : "Creating account...") : mode === "sign-in" ? "Sign In" : "Create Account"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full text-slate-600 hover:text-slate-900"
+                  onClick={() => {
+                    setMode(mode === "sign-in" ? "sign-up" : "sign-in")
+                    setError("")
+                    setSuccess("")
+                  }}
+                >
+                  {mode === "sign-in" ? "New owner? Create an account" : "Already have an account? Sign in"}
                 </Button>
                 <Button
                   type="button"

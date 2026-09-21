@@ -335,7 +335,10 @@ export async function updateResidence(residenceId: string, lastName: string) {
   revalidatePath("/directory")
 }
 
-export async function claimResidence(residenceId: string) {
+export async function claimResidence(_residenceId: string) {
+  return { success: false, error: "Residence assignments are managed by an administrator" }
+
+  /*
   try {
     const supabase = await createClient()
     
@@ -423,6 +426,7 @@ export async function claimResidence(residenceId: string) {
     console.error("[v0] claimResidence error:", err)
     return { success: false, error: err.message || "Failed to claim residence" }
   }
+  */
 }
 
 export async function updateUserPhone(phoneNumber: string) {

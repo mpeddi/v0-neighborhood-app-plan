@@ -3,7 +3,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
-export async function claimResidence(residenceId: string, details: { email?: string; notes?: string }) {
+export async function claimResidence(_residenceId: string, _details: { email?: string; notes?: string }) {
+  return { success: false, error: "Residence assignments are managed by an administrator" }
+
+  /*
   try {
     const supabase = await createClient()
     const {
@@ -58,4 +61,5 @@ export async function claimResidence(residenceId: string, details: { email?: str
   } catch (err: any) {
     return { success: false, error: `Server error: ${err.message}` }
   }
+  */
 }

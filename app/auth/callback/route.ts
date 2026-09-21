@@ -18,8 +18,7 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // Redirect to calendar - welcome card shows if onboarding not completed
-      return NextResponse.redirect(`${origin}/calendar`)
+      return NextResponse.redirect(`${origin}/onboarding`)
     }
   }
 
