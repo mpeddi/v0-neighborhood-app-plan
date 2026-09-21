@@ -94,6 +94,23 @@ export default function LoginPage() {
     return handleSignIn(e)
   }
 
+  if (ownerSignupComplete) {
+    return (
+      <div className="flex min-h-svh w-full items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Check your email</CardTitle>
+            <CardDescription>Confirm {email} to continue to the new-owner setup.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-slate-600">After you verify your email, use the sign-in form to enter the neighborhood hub. You&apos;ll then confirm your assigned residence and optionally add a phone number.</p>
+            <Button type="button" onClick={() => setOwnerSignupComplete(false)}>Continue to sign in</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (showResetPassword) {
     if (resetSent) {
       return (
